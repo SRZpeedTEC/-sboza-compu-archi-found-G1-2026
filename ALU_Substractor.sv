@@ -1,18 +1,9 @@
-// ALU_Substractor: modulo de resta para el ascensor
-// Entradas: piso_init (piso actual), pisos_bajar (cuantos bajar)
+// ALU_Substractor
+// Entradas: piso_init (piso actual), pisos_bajar
 // Salidas:  A_minus1, A_eq_min, B_efectivo
-//
+
 // Saturacion inferior: si pisos_bajar > piso_init
 //   B_efectivo = piso_init  (solo baja lo que puede)
-//
-// Deteccion de underflow:
-//   Se calcula piso_init - pisos_bajar con borrow propagado.
-//   Si el borrow sale del bit 3 (borrow_out=1) → pisos_bajar > piso_init.
-//   piso_init - pisos_bajar:
-//     diff[i] = piso_init[i] ^ pisos_bajar[i] ^ borrow_in
-//     borrow_out = (~piso_init[i] & pisos_bajar[i])
-//                | (~piso_init[i] & borrow_in)
-//                | (pisos_bajar[i] & borrow_in)
 
 module ALU_Substractor (
     input  [3:0] piso_init,

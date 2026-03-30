@@ -1,9 +1,9 @@
-// ALU_Adder: modulo de suma para el ascensor
-// Entradas: piso_init (piso actual), pisos_subir (cuantos subir)
-// Salidas:  A_next (siguiente piso), B_efectivo (pisos reales a recorrer)
-//
+// ALU_Adder
+// Entradas: piso_init, pisos_subir
+// Salidas:  A_next, B_restantes 
+
 // Saturacion superior: si piso_init + pisos_subir > 15
-//   B_efectivo = 15 - piso_init  (solo sube lo que puede)
+//   B_restantes = 15 - piso_init  (solo sube lo que puede)
 // A_next = piso_init + 1 por ciclo mientras B != 0
 // Saturacion de A: si A == 1111 no incrementa
 
@@ -13,7 +13,7 @@ module ALU_Adder (
     input  [3:0] A_reg,        // piso actual del registro
     output [3:0] A_plus1,      // A + 1 para el registro
     output       A_eq_max,     // A == 1111
-    output [3:0] B_efectivo    // pisos reales a recorrer (con saturacion)
+    output [3:0] B_restantes    // pisos reales a recorrer (con saturacion)
 );
 
     // ----------------------------------------------------------------
@@ -36,7 +36,7 @@ module ALU_Adder (
     // ----------------------------------------------------------------
     // Saturacion de entrada: piso_init + pisos_subir > 15?
     // pisos_disp = ~piso_init = 15 - piso_init
-    // Si carry_up → desbordamiento → B_efectivo = pisos_disp
+    // Si carry_up → desbordamiento → B_restantes = pisos_disp
     // ----------------------------------------------------------------
     wire [3:0] pisos_disp;
     assign pisos_disp[0] = ~piso_init[0];
@@ -62,9 +62,9 @@ module ALU_Adder (
                          | (piso_init[3] & c_ab2)
                          | (pisos_subir[3] & c_ab2);
 
-    assign B_efectivo[0] = (carry_up & pisos_disp[0]) | (~carry_up & pisos_subir[0]);
-    assign B_efectivo[1] = (carry_up & pisos_disp[1]) | (~carry_up & pisos_subir[1]);
-    assign B_efectivo[2] = (carry_up & pisos_disp[2]) | (~carry_up & pisos_subir[2]);
-    assign B_efectivo[3] = (carry_up & pisos_disp[3]) | (~carry_up & pisos_subir[3]);
+    assign B_restantes[0] = (carry_up & pisos_disp[0]) | (~carry_up & pisos_subir[0]);
+    assign B_restantes[1] = (carry_up & pisos_disp[1]) | (~carry_up & pisos_subir[1]);
+    assign B_restantes[2] = (carry_up & pisos_disp[2]) | (~carry_up & pisos_subir[2]);
+    assign B_restantes[3] = (carry_up & pisos_disp[3]) | (~carry_up & pisos_subir[3]);
 
 endmodule

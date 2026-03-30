@@ -1,5 +1,4 @@
-// ALU: top level del ascensor
-// Instancia ALU_Adder y ALU_Substractor
+// ALU: controller
 // op = 0 → subir (usa Adder)
 // op = 1 → bajar (usa Substractor)
 
@@ -53,7 +52,6 @@ module ALU (
     );
 
     // ----------------------------------------------------------------
-    // Seleccion segun op (sin if, sin case, sin ternario)
     // step_A  = A+1 si op=0, A-1 si op=1
     // B_efectivo = B_ef_add si op=0, B_ef_sub si op=1
     // hold_A = 1 si no debe moverse
@@ -98,7 +96,7 @@ module ALU (
                      | (~load & hold_A & A[3]);
 
     // ----------------------------------------------------------------
-    // B - 1 (contador regresivo, igual para subir y bajar)
+    // B - 1 
     // ----------------------------------------------------------------
     wire [3:0] B_minus1;
     wire b0, b1, b2;
@@ -141,7 +139,7 @@ module ALU (
     end
 
     // ----------------------------------------------------------------
-    // Encoder B[3:0] → pwm_level[2:0]
+    // PWM level: 3 bits 
     // 000=0%  001=25%  010=50%  011=75%  100=100%
     // ----------------------------------------------------------------
     wire B_ge5;
@@ -154,7 +152,7 @@ module ALU (
                         | (~B[3] &  B[2] & ~B[1] & ~B[0]);
 
     // ----------------------------------------------------------------
-    // Decoder 7 segmentos {g,f,e,d,c,b,a} activo alto, invertido al final
+    // Decoder 7 segmentos {g,f,e,d,c,b,a} 
     // ----------------------------------------------------------------
     wire [6:0] seg_out;
 
