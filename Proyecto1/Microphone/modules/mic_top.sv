@@ -1,10 +1,7 @@
-
-// This module will be used in the main FSM
 module mic_top #(
-    parameter int unsigned CLK_FREQ_HZ    = 50_000_000, 
+    parameter int unsigned CLK_FREQ_HZ = 50_000_000,
     parameter int unsigned LISTEN_TIME_MS = 4000
 )(
-    // Inputs sent by main FSM
     input  logic clk,
     input  logic reset,
     input  logic activate_mic,
@@ -58,7 +55,7 @@ module mic_top #(
         .num_reg(num_reg)
     );
 
-    binary_counter #(
+    mic_timer #(
         .CLK_FREQ_HZ(CLK_FREQ_HZ),
         .LISTEN_TIME_MS(LISTEN_TIME_MS)
     ) mic_listen_timer (

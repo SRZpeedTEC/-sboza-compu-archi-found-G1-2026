@@ -1,10 +1,11 @@
 module mic_timer #(
+    parameter int unsigned CLK_FREQ_HZ = 50_000_000,
+    parameter int unsigned LISTEN_TIME_MS = 4000
+
 )(
-    input logic clk,
-    input logic reset,
-    input logic enable,
-    input logic CLK_FREQ_HZ,
-    input logic LISTEN_TIME_MS,
+    input  logic clk,
+    input  logic reset,
+    input  logic enable,
     output logic mic_times_done
 );
 
@@ -15,16 +16,13 @@ module mic_timer #(
 
     logic [WIDTH-1:0] count_q;
     logic [WIDTH-1:0] count_d;
-
     logic count_enable;
 
     assign mic_times_done = (count_q == TERMINAL_COUNT_VEC);
     assign count_enable   = enable & ~mic_times_done;
 
-    // Bit 0
     assign count_d[0] = count_enable & ~count_q[0];
 
-    // Bits restantes
     genvar i;
     generate
         for (i = 1; i < WIDTH; i = i + 1) begin : gen_counter_bits
@@ -42,7 +40,6 @@ module mic_timer #(
         end
     endgenerate
 
-    // Flip-flop del bit 0
     flip_flop_d ff_count_0 (
         .clk(clk),
         .reset(reset),

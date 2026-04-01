@@ -1,68 +1,60 @@
-module mic_top #(
-    parameter int unsigned CLK_FREQ_HZ    = 50_000_000,
-    parameter int unsigned LISTEN_TIME_MS = 4000
-)(
+
+// Module that control the flow of microphone FSM
+module mic_control_fsm (
     input  logic clk,
     input  logic reset,
     input  logic activate_mic,
+    input  logic mic_times_done,
     input  logic clap_event,
     input  logic [2:0] mode_mic,
+    input  logic seen_clap,
 
+    output logic s1,
+    output logic s0,
+    output logic clear_clap_seen,
+    output logic set_clap_seen,
     output logic mic_done,
     output logic init_system,
     output logic listening_led,
-    output logic dir_reg,
-    output logic [3:0] num_reg
+    output logic [2:0] load_bit
 );
 
-    logic s1, s0;
-    logic clear_clap_seen;
-    logic set_clap_seen;
-    logic [2:0] load_bit;
-    logic seen_clap;
-    logic mic_times_done_internal;
-    logic timer_enable;
+    logic next_s1, next_s0;
+    logic m2, m1, m0;
 
-    // El timer se habilita en estado Listen
-    assign timer_enable = (~s1 & s0);
+    assign m2 = mode_mic[2];
+    assign m1 = mode_mic[1];
+    assign m0 = mode_mic[0];
 
-    mic_control_fsm mic_fsm (
+    // Next state
+    assign next_s1 = (~s1 & s0 & mic_times_done);
+    assign next_s0 = (~s1 & ~s0 & activate_mic) | (~s1 &  s0 & ~mic_times_done);
+
+    // Control outputs
+    assign clear_clap_seen = (~s1 & ~s0);
+    assign set_clap_seen   = (~s1 &  s0 & clap_event);
+    assign mic_done        = ( s1 & ~s0);
+    assign listening_led   = (~s1 &  s0);
+    assign init_system = (s1 & ~s0 & ~m2 & ~m1 & ~m0 & seen_clap);
+
+    // load_bit is active only in S2
+    assign load_bit[2] = (s1 & ~s0 & m2);
+    assign load_bit[1] = (s1 & ~s0 & m1);
+    assign load_bit[0] = (s1 & ~s0 & m0);
+
+    // State flip flops
+    flip_flop_d ff_s1 (
         .clk(clk),
         .reset(reset),
-        .activate_mic(activate_mic),
-        .mic_times_done(mic_times_done_internal),
-        .clap_event(clap_event),
-        .mode_mic(mode_mic),
-        .seen_clap(seen_clap),
-        .s1(s1),
-        .s0(s0),
-        .clear_clap_seen(clear_clap_seen),
-        .set_clap_seen(set_clap_seen),
-        .mic_done(mic_done),
-        .init_system(init_system),
-        .listening_led(listening_led),
-        .load_bit(load_bit)
+        .d(next_s1),
+        .q(s1)
     );
 
-    mic_saver mic_regs (
+    flip_flop_d ff_s0 (
         .clk(clk),
         .reset(reset),
-        .clear_clap_seen(clear_clap_seen),
-        .set_clap_seen(set_clap_seen),
-        .load_bit(load_bit),
-        .seen_clap(seen_clap),
-        .dir_reg(dir_reg),
-        .num_reg(num_reg)
-    );
-
-    mic_timer #(
-        .CLK_FREQ_HZ(CLK_FREQ_HZ),
-        .LISTEN_TIME_MS(LISTEN_TIME_MS)
-    ) mic_listen_timer (
-        .clk(clk),
-        .reset(reset),
-        .enable(timer_enable),
-        .mic_times_done(mic_times_done_internal)
+        .d(next_s0),
+        .q(s0)
     );
 
 endmodule
