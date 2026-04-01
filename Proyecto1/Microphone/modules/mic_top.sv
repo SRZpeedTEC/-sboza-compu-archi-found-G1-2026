@@ -1,13 +1,18 @@
+// Top module to connect directly with the main FSM
+
 module mic_top #(
+    // TIMER
     parameter int unsigned CLK_FREQ_HZ = 50_000_000,
     parameter int unsigned LISTEN_TIME_MS = 4000
 )(
+    // INPUTS
     input  logic clk,
     input  logic reset,
-    input  logic activate_mic,
-    input  logic clap_event,
-    input  logic [2:0] mode_mic,
+    input  logic activate_mic, // From main FSM
+    input  logic clap_event, // From digital microphone
+    input  logic [2:0] mode_mic, // From main FSM
 
+    // OUTPUTS
     output logic mic_done,
     output logic init_system,
     output logic listening_led,
@@ -15,6 +20,7 @@ module mic_top #(
     output logic [3:0] num_reg
 );
 
+    // INTERN VAR
     logic s1, s0;
     logic clear_clap_seen;
     logic set_clap_seen;
@@ -23,7 +29,7 @@ module mic_top #(
     logic mic_times_done_internal;
     logic timer_enable;
 
-    // El timer se habilita en estado Listen
+    // Timer is on in S1
     assign timer_enable = (~s1 & s0);
 
     mic_control_fsm mic_fsm (
@@ -55,7 +61,7 @@ module mic_top #(
         .num_reg(num_reg)
     );
 
-    mic_timer #(
+    binary_counter #(
         .CLK_FREQ_HZ(CLK_FREQ_HZ),
         .LISTEN_TIME_MS(LISTEN_TIME_MS)
     ) mic_listen_timer (

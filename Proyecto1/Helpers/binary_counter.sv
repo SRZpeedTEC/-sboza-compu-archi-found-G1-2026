@@ -1,4 +1,4 @@
-module mic_timer #(
+module binary_counter #(
     parameter int unsigned CLK_FREQ_HZ = 50_000_000,
     parameter int unsigned LISTEN_TIME_MS = 4000
 
