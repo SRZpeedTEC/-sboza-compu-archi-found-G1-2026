@@ -1,9 +1,9 @@
 // ALU_Substractor
 // Entradas: piso_init (piso actual), pisos_bajar
-// Salidas:  A_minus1, A_eq_min, B_efectivo
+// Salidas:  A_minus1, A_eq_min, B_restantes
 
 // Saturacion inferior: si pisos_bajar > piso_init
-//   B_efectivo = piso_init  (solo baja lo que puede)
+//   B_restantes = piso_init  (solo baja lo que puede)
 
 module ALU_Substractor (
     input  [3:0] piso_init,
@@ -11,7 +11,7 @@ module ALU_Substractor (
     input  [3:0] A_reg,
     output [3:0] A_minus1,
     output       A_eq_min,
-    output [3:0] B_efectivo
+    output [3:0] B_restantes
 );
 
     // ----------------------------------------------------------------
@@ -57,11 +57,11 @@ module ALU_Substractor (
                     | (~piso_init[3] & br2)
                     | ( pisos_bajar[3] & br2);
 
-    // br3 = 1 → underflow → B_efectivo = piso_init
-    // br3 = 0 → normal    → B_efectivo = pisos_bajar
-    assign B_efectivo[0] = (br3 & piso_init[0]) | (~br3 & pisos_bajar[0]);
-    assign B_efectivo[1] = (br3 & piso_init[1]) | (~br3 & pisos_bajar[1]);
-    assign B_efectivo[2] = (br3 & piso_init[2]) | (~br3 & pisos_bajar[2]);
-    assign B_efectivo[3] = (br3 & piso_init[3]) | (~br3 & pisos_bajar[3]);
+    // br3 = 1 → underflow → B_restantes = piso_init
+    // br3 = 0 → normal    → B_restantes = pisos_bajar
+    assign B_restantes[0] = (br3 & piso_init[0]) | (~br3 & pisos_bajar[0]);
+    assign B_restantes[1] = (br3 & piso_init[1]) | (~br3 & pisos_bajar[1]);
+    assign B_restantes[2] = (br3 & piso_init[2]) | (~br3 & pisos_bajar[2]);
+    assign B_restantes[3] = (br3 & piso_init[3]) | (~br3 & pisos_bajar[3]);
 
 endmodule
