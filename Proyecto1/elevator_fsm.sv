@@ -67,28 +67,31 @@ module elevator_fsm (
                             | (state[WAIT_MOVEMENT] & done);
 
     // BEEP1: llega desde IDLE cuando init_system=1
-    assign next_state[BEEP1] = state[IDLE] & init_system;
+    assign next_state[BEEP1] = (state[IDLE] & init_system)
+                          | (state[BEEP1] & ~buzzer_done);
 
     // READOP: llega desde BEEP1 cuando buzzer_done=1
-    assign next_state[READOP] = state[BEEP1] & buzzer_done;
+    assign next_state[READOP] = (state[BEEP1] & buzzer_done)
+                            | (state[READOP] & ~mic_done);
 
-    // BEEP2: llega desde READOP cuando mic_done=1
-    assign next_state[BEEP2] = state[READOP] & mic_done;
+    assign next_state[BEEP2] = (state[READOP] & mic_done)
+                            | (state[BEEP2] & ~buzzer_done);
 
-    // READBIT0: llega desde BEEP2 cuando buzzer_done=1
-    assign next_state[READBIT0] = state[BEEP2] & buzzer_done;
 
-    // READBIT1: llega desde READBIT0 cuando mic_done=1
-    assign next_state[READBIT1] = state[READBIT0] & mic_done;
+    assign next_state[READBIT0] = (state[BEEP2] & buzzer_done)
+                                | (state[READBIT0] & ~mic_done);
 
-    // READBIT2: llega desde READBIT1 cuando mic_done=1
-    assign next_state[READBIT2] = state[READBIT1] & mic_done;
+    assign next_state[READBIT1] = (state[READBIT0] & mic_done)
+                                | (state[READBIT1] & ~mic_done);
 
-    // READBIT3: llega desde READBIT2 cuando mic_done=1
-    assign next_state[READBIT3] = state[READBIT2] & mic_done;
+    assign next_state[READBIT2] = (state[READBIT1] & mic_done)
+                                | (state[READBIT2] & ~mic_done);
 
-    // BEEP3: llega desde READBIT3 cuando mic_done=1
-    assign next_state[BEEP3] = state[READBIT3] & mic_done;
+    assign next_state[READBIT3] = (state[READBIT2] & mic_done)
+                                | (state[READBIT3] & ~mic_done);
+
+    assign next_state[BEEP3] = (state[READBIT3] & mic_done)
+                            | (state[BEEP3] & ~buzzer_done);
 
     // START_MOVEMENT: llega desde BEEP3 cuando buzzer_done=1
     assign next_state[START_MOVEMENT] = state[BEEP3] & buzzer_done;
@@ -128,8 +131,7 @@ module elevator_fsm (
                        | state[READBIT3];
 
     assign mode_mic[1] = state[READBIT0]
-                       | state[READBIT1]
-                       | state[READBIT2];
+                       | state[READBIT1];
 
     assign mode_mic[2] = state[READBIT2]
                        | state[READBIT3];
