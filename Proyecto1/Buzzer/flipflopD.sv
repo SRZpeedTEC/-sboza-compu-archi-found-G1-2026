@@ -12,7 +12,7 @@
 //   q     : dato de salida
 // =============================================================================
 
-module dff #(
+module flipflopD #(
     parameter integer WIDTH = 1
 )(
     input  logic             clk,

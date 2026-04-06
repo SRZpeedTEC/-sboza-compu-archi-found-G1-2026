@@ -1,0 +1,535 @@
+Analysis & Elaboration report for Elevator
+Mon Apr  6 03:29:35 2026
+Quartus Prime Version 25.1std.0 Build 1129 10/21/2025 SC Lite Edition
+
+
+---------------------
+; Table of Contents ;
+---------------------
+  1. Legal Notice
+  2. Analysis & Elaboration Summary
+  3. Parallel Compilation
+  4. Parameter Settings for User Entity Instance: Top-level Entity: |elevator_demo_top
+  5. Parameter Settings for User Entity Instance: mic_demo:u_mic
+  6. Parameter Settings for User Entity Instance: mic_demo:u_mic|debounce:u_debounce
+  7. Parameter Settings for User Entity Instance: mic_demo:u_mic|mic_top:u_mic_top
+  8. Parameter Settings for User Entity Instance: mic_demo:u_mic|mic_top:u_mic_top|binary_counter:mic_listen_timer
+  9. Parameter Settings for User Entity Instance: buzzer_top:u_buzzer
+ 10. Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_beep_timer
+ 11. Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_beep_timer|comparator:u_cmp
+ 12. Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_beep_timer|incrementer:u_inc
+ 13. Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_beep_timer|flipflopD:u_dff
+ 14. Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_pause_timer
+ 15. Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_pause_timer|comparator:u_cmp
+ 16. Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_pause_timer|incrementer:u_inc
+ 17. Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_pause_timer|flipflopD:u_dff
+ 18. Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|beep_counter:u_beep_counter
+ 19. Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|beep_counter:u_beep_counter|incrementer:u_inc
+ 20. Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|beep_counter:u_beep_counter|flipflopD:u_dff
+ 21. Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|beep_counter:u_beep_counter|comparator:u_cmp
+ 22. Parameter Settings for User Entity Instance: ALU:u_alu
+ 23. Analysis & Elaboration Settings
+ 24. Port Connectivity Checks: "ALU:u_alu"
+ 25. Port Connectivity Checks: "buzzer_top:u_buzzer|counter:u_pause_timer"
+ 26. Port Connectivity Checks: "buzzer_top:u_buzzer|counter:u_beep_timer"
+ 27. Analysis & Elaboration Messages
+ 28. Analysis & Elaboration Suppressed Messages
+
+
+
+----------------
+; Legal Notice ;
+----------------
+Copyright (C) 2025  Altera Corporation. All rights reserved.
+Your use of Altera Corporation's design tools, logic functions 
+and other software and tools, and any partner logic 
+functions, and any output files from any of the foregoing 
+(including device programming or simulation files), and any 
+associated documentation or information are expressly subject 
+to the terms and conditions of the Altera Program License 
+Subscription Agreement, the Altera Quartus Prime License Agreement,
+the Altera IP License Agreement, or other applicable license
+agreement, including, without limitation, that your use is for
+the sole purpose of programming logic devices manufactured by
+Altera and sold by Altera or its authorized distributors.  Please
+refer to the Altera Software License Subscription Agreements 
+on the Quartus Prime software download page.
+
+
+
++---------------------------------------------------------------------------------+
+; Analysis & Elaboration Summary                                                  ;
++-------------------------------+-------------------------------------------------+
+; Analysis & Elaboration Status ; Successful - Mon Apr  6 03:29:35 2026           ;
+; Quartus Prime Version         ; 25.1std.0 Build 1129 10/21/2025 SC Lite Edition ;
+; Revision Name                 ; Elevator                                        ;
+; Top-level Entity Name         ; elevator_demo_top                               ;
+; Family                        ; Cyclone V                                       ;
+; Logic utilization (in ALMs)   ; N/A until Partition Merge                       ;
+; Total registers               ; N/A until Partition Merge                       ;
+; Total pins                    ; N/A until Partition Merge                       ;
+; Total virtual pins            ; N/A until Partition Merge                       ;
+; Total block memory bits       ; N/A until Partition Merge                       ;
+; Total PLLs                    ; N/A until Partition Merge                       ;
+; Total DLLs                    ; N/A until Partition Merge                       ;
++-------------------------------+-------------------------------------------------+
+
+
++------------------------------------------+
+; Parallel Compilation                     ;
++----------------------------+-------------+
+; Processors                 ; Number      ;
++----------------------------+-------------+
+; Number detected on machine ; 8           ;
+; Maximum allowed            ; 4           ;
+;                            ;             ;
+; Average used               ; 1.00        ;
+; Maximum used               ; 1           ;
+;                            ;             ;
+; Usage by Processor         ; % Time Used ;
+;     Processor 1            ; 100.0%      ;
++----------------------------+-------------+
+
+
++-----------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: Top-level Entity: |elevator_demo_top ;
++----------------+----------+-------------------------------------------------------+
+; Parameter Name ; Value    ; Type                                                  ;
++----------------+----------+-------------------------------------------------------+
+; CLK_FREQ       ; 50000000 ; Signed Integer                                        ;
++----------------+----------+-------------------------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++-------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: mic_demo:u_mic ;
++----------------+----------+---------------------------------+
+; Parameter Name ; Value    ; Type                            ;
++----------------+----------+---------------------------------+
+; CLK_FREQ_HZ    ; 50000000 ; Signed Integer                  ;
+; LISTEN_TIME_MS ; 4000     ; Signed Integer                  ;
+; DEBOUNCE_MS    ; 20       ; Signed Integer                  ;
++----------------+----------+---------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++---------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: mic_demo:u_mic|debounce:u_debounce ;
++----------------+----------------------------------+-----------------------------+
+; Parameter Name ; Value                            ; Type                        ;
++----------------+----------------------------------+-----------------------------+
+; CLK_FREQ       ; 00000010111110101111000010000000 ; Unsigned Binary             ;
+; DEBOUNCE_MS    ; 00000000000000000000000000010100 ; Unsigned Binary             ;
++----------------+----------------------------------+-----------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++-------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: mic_demo:u_mic|mic_top:u_mic_top ;
++----------------+----------------------------------+---------------------------+
+; Parameter Name ; Value                            ; Type                      ;
++----------------+----------------------------------+---------------------------+
+; CLK_FREQ_HZ    ; 00000010111110101111000010000000 ; Unsigned Binary           ;
+; LISTEN_TIME_MS ; 00000000000000000000111110100000 ; Unsigned Binary           ;
++----------------+----------------------------------+---------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++---------------------------------------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: mic_demo:u_mic|mic_top:u_mic_top|binary_counter:mic_listen_timer ;
++----------------+----------------------------------+-----------------------------------------------------------+
+; Parameter Name ; Value                            ; Type                                                      ;
++----------------+----------------------------------+-----------------------------------------------------------+
+; CLK_FREQ_HZ    ; 00000010111110101111000010000000 ; Unsigned Binary                                           ;
+; LISTEN_TIME_MS ; 00000000000000000000111110100000 ; Unsigned Binary                                           ;
++----------------+----------------------------------+-----------------------------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: buzzer_top:u_buzzer ;
++----------------+----------+--------------------------------------+
+; Parameter Name ; Value    ; Type                                 ;
++----------------+----------+--------------------------------------+
+; BEEP_TARGET    ; 49999999 ; Signed Integer                       ;
+; PAUSE_TARGET   ; 24999999 ; Signed Integer                       ;
++----------------+----------+--------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++---------------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_beep_timer ;
++----------------+-------+--------------------------------------------------------------+
+; Parameter Name ; Value ; Type                                                         ;
++----------------+-------+--------------------------------------------------------------+
+; WIDTH          ; 26    ; Signed Integer                                               ;
++----------------+-------+--------------------------------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++--------------------------------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_beep_timer|comparator:u_cmp ;
++----------------+-------+-------------------------------------------------------------------------------+
+; Parameter Name ; Value ; Type                                                                          ;
++----------------+-------+-------------------------------------------------------------------------------+
+; WIDTH          ; 26    ; Signed Integer                                                                ;
++----------------+-------+-------------------------------------------------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++---------------------------------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_beep_timer|incrementer:u_inc ;
++----------------+-------+--------------------------------------------------------------------------------+
+; Parameter Name ; Value ; Type                                                                           ;
++----------------+-------+--------------------------------------------------------------------------------+
+; WIDTH          ; 26    ; Signed Integer                                                                 ;
++----------------+-------+--------------------------------------------------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++-------------------------------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_beep_timer|flipflopD:u_dff ;
++----------------+-------+------------------------------------------------------------------------------+
+; Parameter Name ; Value ; Type                                                                         ;
++----------------+-------+------------------------------------------------------------------------------+
+; WIDTH          ; 26    ; Signed Integer                                                               ;
++----------------+-------+------------------------------------------------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++----------------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_pause_timer ;
++----------------+-------+---------------------------------------------------------------+
+; Parameter Name ; Value ; Type                                                          ;
++----------------+-------+---------------------------------------------------------------+
+; WIDTH          ; 26    ; Signed Integer                                                ;
++----------------+-------+---------------------------------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++---------------------------------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_pause_timer|comparator:u_cmp ;
++----------------+-------+--------------------------------------------------------------------------------+
+; Parameter Name ; Value ; Type                                                                           ;
++----------------+-------+--------------------------------------------------------------------------------+
+; WIDTH          ; 26    ; Signed Integer                                                                 ;
++----------------+-------+--------------------------------------------------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++----------------------------------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_pause_timer|incrementer:u_inc ;
++----------------+-------+---------------------------------------------------------------------------------+
+; Parameter Name ; Value ; Type                                                                            ;
++----------------+-------+---------------------------------------------------------------------------------+
+; WIDTH          ; 26    ; Signed Integer                                                                  ;
++----------------+-------+---------------------------------------------------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++--------------------------------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|counter:u_pause_timer|flipflopD:u_dff ;
++----------------+-------+-------------------------------------------------------------------------------+
+; Parameter Name ; Value ; Type                                                                          ;
++----------------+-------+-------------------------------------------------------------------------------+
+; WIDTH          ; 26    ; Signed Integer                                                                ;
++----------------+-------+-------------------------------------------------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++----------------------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|beep_counter:u_beep_counter ;
++----------------+-------+---------------------------------------------------------------------+
+; Parameter Name ; Value ; Type                                                                ;
++----------------+-------+---------------------------------------------------------------------+
+; WIDTH          ; 2     ; Signed Integer                                                      ;
++----------------+-------+---------------------------------------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++----------------------------------------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|beep_counter:u_beep_counter|incrementer:u_inc ;
++----------------+-------+---------------------------------------------------------------------------------------+
+; Parameter Name ; Value ; Type                                                                                  ;
++----------------+-------+---------------------------------------------------------------------------------------+
+; WIDTH          ; 2     ; Signed Integer                                                                        ;
++----------------+-------+---------------------------------------------------------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++--------------------------------------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|beep_counter:u_beep_counter|flipflopD:u_dff ;
++----------------+-------+-------------------------------------------------------------------------------------+
+; Parameter Name ; Value ; Type                                                                                ;
++----------------+-------+-------------------------------------------------------------------------------------+
+; WIDTH          ; 2     ; Signed Integer                                                                      ;
++----------------+-------+-------------------------------------------------------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++---------------------------------------------------------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: buzzer_top:u_buzzer|beep_counter:u_beep_counter|comparator:u_cmp ;
++----------------+-------+--------------------------------------------------------------------------------------+
+; Parameter Name ; Value ; Type                                                                                 ;
++----------------+-------+--------------------------------------------------------------------------------------+
+; WIDTH          ; 2     ; Signed Integer                                                                       ;
++----------------+-------+--------------------------------------------------------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++--------------------------------------------------------+
+; Parameter Settings for User Entity Instance: ALU:u_alu ;
++----------------+----------+----------------------------+
+; Parameter Name ; Value    ; Type                       ;
++----------------+----------+----------------------------+
+; CLK_FREQ       ; 50000000 ; Signed Integer             ;
++----------------+----------+----------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++---------------------------------------------------------------------------------------------------------------------------+
+; Analysis & Elaboration Settings                                                                                           ;
++---------------------------------------------------------------------------------+--------------------+--------------------+
+; Option                                                                          ; Setting            ; Default Value      ;
++---------------------------------------------------------------------------------+--------------------+--------------------+
+; Device                                                                          ; 5CSEMA5F31C6       ;                    ;
+; Top-level entity name                                                           ; elevator_demo_top  ; Elevator           ;
+; Family name                                                                     ; Cyclone V          ; Cyclone V          ;
+; Use smart compilation                                                           ; Off                ; Off                ;
+; Enable parallel Assembler and Timing Analyzer during compilation                ; On                 ; On                 ;
+; Enable compact report table                                                     ; Off                ; Off                ;
+; Restructure Multiplexers                                                        ; Auto               ; Auto               ;
+; MLAB Add Timing Constraints For Mixed-Port Feed-Through Mode Setting Don't Care ; Off                ; Off                ;
+; Create Debugging Nodes for IP Cores                                             ; Off                ; Off                ;
+; Preserve fewer node names                                                       ; On                 ; On                 ;
+; Intel FPGA IP Evaluation Mode                                                   ; Enable             ; Enable             ;
+; Verilog Version                                                                 ; Verilog_2001       ; Verilog_2001       ;
+; VHDL Version                                                                    ; VHDL_1993          ; VHDL_1993          ;
+; State Machine Processing                                                        ; Auto               ; Auto               ;
+; Safe State Machine                                                              ; Off                ; Off                ;
+; Extract Verilog State Machines                                                  ; On                 ; On                 ;
+; Extract VHDL State Machines                                                     ; On                 ; On                 ;
+; Ignore Verilog initial constructs                                               ; Off                ; Off                ;
+; Iteration limit for constant Verilog loops                                      ; 5000               ; 5000               ;
+; Iteration limit for non-constant Verilog loops                                  ; 250                ; 250                ;
+; Add Pass-Through Logic to Inferred RAMs                                         ; On                 ; On                 ;
+; Infer RAMs from Raw Logic                                                       ; On                 ; On                 ;
+; Parallel Synthesis                                                              ; On                 ; On                 ;
+; DSP Block Balancing                                                             ; Auto               ; Auto               ;
+; NOT Gate Push-Back                                                              ; On                 ; On                 ;
+; Power-Up Don't Care                                                             ; On                 ; On                 ;
+; Remove Redundant Logic Cells                                                    ; Off                ; Off                ;
+; Remove Duplicate Registers                                                      ; On                 ; On                 ;
+; Ignore CARRY Buffers                                                            ; Off                ; Off                ;
+; Ignore CASCADE Buffers                                                          ; Off                ; Off                ;
+; Ignore GLOBAL Buffers                                                           ; Off                ; Off                ;
+; Ignore ROW GLOBAL Buffers                                                       ; Off                ; Off                ;
+; Ignore LCELL Buffers                                                            ; Off                ; Off                ;
+; Ignore SOFT Buffers                                                             ; On                 ; On                 ;
+; Limit AHDL Integers to 32 Bits                                                  ; Off                ; Off                ;
+; Optimization Technique                                                          ; Balanced           ; Balanced           ;
+; Carry Chain Length                                                              ; 70                 ; 70                 ;
+; Auto Carry Chains                                                               ; On                 ; On                 ;
+; Auto Open-Drain Pins                                                            ; On                 ; On                 ;
+; Perform WYSIWYG Primitive Resynthesis                                           ; Off                ; Off                ;
+; Auto ROM Replacement                                                            ; On                 ; On                 ;
+; Auto RAM Replacement                                                            ; On                 ; On                 ;
+; Auto DSP Block Replacement                                                      ; On                 ; On                 ;
+; Auto Shift Register Replacement                                                 ; Auto               ; Auto               ;
+; Allow Shift Register Merging across Hierarchies                                 ; Auto               ; Auto               ;
+; Auto Clock Enable Replacement                                                   ; On                 ; On                 ;
+; Strict RAM Replacement                                                          ; Off                ; Off                ;
+; Allow Synchronous Control Signals                                               ; On                 ; On                 ;
+; Force Use of Synchronous Clear Signals                                          ; Off                ; Off                ;
+; Auto Resource Sharing                                                           ; Off                ; Off                ;
+; Allow Any RAM Size For Recognition                                              ; Off                ; Off                ;
+; Allow Any ROM Size For Recognition                                              ; Off                ; Off                ;
+; Allow Any Shift Register Size For Recognition                                   ; Off                ; Off                ;
+; Use LogicLock Constraints during Resource Balancing                             ; On                 ; On                 ;
+; Ignore translate_off and synthesis_off directives                               ; Off                ; Off                ;
+; Timing-Driven Synthesis                                                         ; On                 ; On                 ;
+; Report Parameter Settings                                                       ; On                 ; On                 ;
+; Report Source Assignments                                                       ; On                 ; On                 ;
+; Report Connectivity Checks                                                      ; On                 ; On                 ;
+; Ignore Maximum Fan-Out Assignments                                              ; Off                ; Off                ;
+; Synchronization Register Chain Length                                           ; 3                  ; 3                  ;
+; Power Optimization During Synthesis                                             ; Normal compilation ; Normal compilation ;
+; HDL message level                                                               ; Level2             ; Level2             ;
+; Suppress Register Optimization Related Messages                                 ; Off                ; Off                ;
+; Number of Removed Registers Reported in Synthesis Report                        ; 5000               ; 5000               ;
+; Number of Swept Nodes Reported in Synthesis Report                              ; 5000               ; 5000               ;
+; Number of Inverted Registers Reported in Synthesis Report                       ; 100                ; 100                ;
+; Clock MUX Protection                                                            ; On                 ; On                 ;
+; Auto Gated Clock Conversion                                                     ; Off                ; Off                ;
+; Block Design Naming                                                             ; Auto               ; Auto               ;
+; SDC constraint protection                                                       ; Off                ; Off                ;
+; Synthesis Effort                                                                ; Auto               ; Auto               ;
+; Shift Register Replacement - Allow Asynchronous Clear Signal                    ; On                 ; On                 ;
+; Pre-Mapping Resynthesis Optimization                                            ; Off                ; Off                ;
+; Analysis & Synthesis Message Level                                              ; Medium             ; Medium             ;
+; Disable Register Merging Across Hierarchies                                     ; Auto               ; Auto               ;
+; Resource Aware Inference For Block RAM                                          ; On                 ; On                 ;
+; Automatic Parallel Synthesis                                                    ; On                 ; On                 ;
+; Partial Reconfiguration Bitstream ID                                            ; Off                ; Off                ;
++---------------------------------------------------------------------------------+--------------------+--------------------+
+
+
++---------------------------------------------------------------------------------------------------------------------+
+; Port Connectivity Checks: "ALU:u_alu"                                                                               ;
++-----------+--------+----------+-------------------------------------------------------------------------------------+
+; Port      ; Type   ; Severity ; Details                                                                             ;
++-----------+--------+----------+-------------------------------------------------------------------------------------+
+; pwm_level ; Output ; Info     ; Connected to dangling logic. Logic that only feeds a dangling port will be removed. ;
++-----------+--------+----------+-------------------------------------------------------------------------------------+
+
+
++-----------------------------------------------------------------------+
+; Port Connectivity Checks: "buzzer_top:u_buzzer|counter:u_pause_timer" ;
++----------------+-------+----------+-----------------------------------+
+; Port           ; Type  ; Severity ; Details                           ;
++----------------+-------+----------+-----------------------------------+
+; target[22..18] ; Input ; Info     ; Stuck at VCC                      ;
+; target[14..11] ; Input ; Info     ; Stuck at VCC                      ;
+; target[5..0]   ; Input ; Info     ; Stuck at VCC                      ;
+; target[10..6]  ; Input ; Info     ; Stuck at GND                      ;
+; target[25]     ; Input ; Info     ; Stuck at GND                      ;
+; target[24]     ; Input ; Info     ; Stuck at VCC                      ;
+; target[23]     ; Input ; Info     ; Stuck at GND                      ;
+; target[17]     ; Input ; Info     ; Stuck at GND                      ;
+; target[16]     ; Input ; Info     ; Stuck at VCC                      ;
+; target[15]     ; Input ; Info     ; Stuck at GND                      ;
++----------------+-------+----------+-----------------------------------+
+
+
++----------------------------------------------------------------------+
+; Port Connectivity Checks: "buzzer_top:u_buzzer|counter:u_beep_timer" ;
++----------------+-------+----------+----------------------------------+
+; Port           ; Type  ; Severity ; Details                          ;
++----------------+-------+----------+----------------------------------+
+; target[23..19] ; Input ; Info     ; Stuck at VCC                     ;
+; target[15..12] ; Input ; Info     ; Stuck at VCC                     ;
+; target[6..0]   ; Input ; Info     ; Stuck at VCC                     ;
+; target[11..7]  ; Input ; Info     ; Stuck at GND                     ;
+; target[25]     ; Input ; Info     ; Stuck at VCC                     ;
+; target[24]     ; Input ; Info     ; Stuck at GND                     ;
+; target[18]     ; Input ; Info     ; Stuck at GND                     ;
+; target[17]     ; Input ; Info     ; Stuck at VCC                     ;
+; target[16]     ; Input ; Info     ; Stuck at GND                     ;
++----------------+-------+----------+----------------------------------+
+
+
++---------------------------------+
+; Analysis & Elaboration Messages ;
++---------------------------------+
+Info: *******************************************************************
+Info: Running Quartus Prime Analysis & Elaboration
+    Info: Version 25.1std.0 Build 1129 10/21/2025 SC Lite Edition
+    Info: Processing started: Mon Apr  6 03:29:29 2026
+Info: Command: quartus_map --read_settings_files=on --write_settings_files=off Elevator -c Elevator --analysis_and_elaboration
+Warning (18236): Number of processors has not been specified which may cause overloading on shared machines.  Set the global assignment NUM_PARALLEL_PROCESSORS in your QSF to an appropriate value for best performance.
+Info (20030): Parallel compilation is enabled and will use 4 of the 4 processors detected
+Info (12021): Found 1 design units, including 1 entities, in source file Buzzer/flipflopD.sv
+    Info (12023): Found entity 1: flipflopD File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/flipflopD.sv Line: 15
+Info (12021): Found 1 design units, including 1 entities, in source file PWM/tb_pwm.sv
+    Info (12023): Found entity 1: tb_pwm File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/PWM/tb_pwm.sv Line: 1
+Info (12021): Found 1 design units, including 1 entities, in source file PWM/pwm_top.sv
+    Info (12023): Found entity 1: pwm_top File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/PWM/pwm_top.sv Line: 3
+Info (12021): Found 1 design units, including 1 entities, in source file PWM/decoder_pwm.sv
+    Info (12023): Found entity 1: decoder_pwm File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/PWM/decoder_pwm.sv Line: 3
+Info (12021): Found 1 design units, including 1 entities, in source file PWM/counter_pwm.sv
+    Info (12023): Found entity 1: counter_pwm File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/PWM/counter_pwm.sv Line: 1
+Info (12021): Found 1 design units, including 1 entities, in source file PWM/comparator_pwm.sv
+    Info (12023): Found entity 1: comparator_pwm File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/PWM/comparator_pwm.sv Line: 3
+Info (12021): Found 1 design units, including 1 entities, in source file Demos/mic_demo.sv
+    Info (12023): Found entity 1: mic_demo File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Demos/mic_demo.sv Line: 15
+Info (12021): Found 1 design units, including 1 entities, in source file Demos/elevator_demo_top.sv
+    Info (12023): Found entity 1: elevator_demo_top File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Demos/elevator_demo_top.sv Line: 17
+Warning (10259): Verilog HDL error at elevator_demo_tb.sv(156): constant value overflow File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Demos/elevator_demo_tb.sv Line: 156
+Info (12021): Found 1 design units, including 1 entities, in source file Demos/elevator_demo_tb.sv
+    Info (12023): Found entity 1: tb_elevator_demo File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Demos/elevator_demo_tb.sv Line: 14
+Info (12021): Found 1 design units, including 1 entities, in source file Demos/debounce.sv
+    Info (12023): Found entity 1: debounce File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Demos/debounce.sv Line: 19
+Info (12021): Found 1 design units, including 1 entities, in source file Helpers/flip_flop_d.sv
+    Info (12023): Found entity 1: flip_flop_d File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Helpers/flip_flop_d.sv Line: 1
+Info (12021): Found 1 design units, including 1 entities, in source file Helpers/eq_comparator.sv
+    Info (12023): Found entity 1: eq_comparator File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Helpers/eq_comparator.sv Line: 10
+Info (12021): Found 1 design units, including 1 entities, in source file Helpers/binary_counter.sv
+    Info (12023): Found entity 1: binary_counter File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Helpers/binary_counter.sv Line: 1
+Info (12021): Found 1 design units, including 1 entities, in source file Microphone/modules/mic_top.sv
+    Info (12023): Found entity 1: mic_top File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Microphone/modules/mic_top.sv Line: 3
+Info (12021): Found 1 design units, including 1 entities, in source file Microphone/modules/mic_saver.sv
+    Info (12023): Found entity 1: mic_saver File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Microphone/modules/mic_saver.sv Line: 1
+Info (12021): Found 1 design units, including 1 entities, in source file Microphone/modules/mic_control_fsm.sv
+    Info (12023): Found entity 1: mic_control_fsm File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Microphone/modules/mic_control_fsm.sv Line: 3
+Info (12021): Found 1 design units, including 1 entities, in source file Buzzer/mux2.sv
+    Info (12023): Found entity 1: mux2 File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/mux2.sv Line: 14
+Info (12021): Found 1 design units, including 1 entities, in source file Buzzer/incrementer.sv
+    Info (12023): Found entity 1: incrementer File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/incrementer.sv Line: 12
+Info (12021): Found 1 design units, including 1 entities, in source file Buzzer/counter_tb.sv
+    Info (12023): Found entity 1: counter_tb File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/counter_tb.sv Line: 13
+Info (12021): Found 1 design units, including 1 entities, in source file Buzzer/counter.sv
+    Info (12023): Found entity 1: counter File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/counter.sv Line: 20
+Info (12021): Found 1 design units, including 1 entities, in source file Buzzer/comparator.sv
+    Info (12023): Found entity 1: comparator File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/comparator.sv Line: 13
+Info (12021): Found 1 design units, including 1 entities, in source file Buzzer/buzzer_top_tb.sv
+    Info (12023): Found entity 1: buzzer_top_tb File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/buzzer_top_tb.sv Line: 19
+Info (12021): Found 1 design units, including 1 entities, in source file Buzzer/buzzer_top.sv
+    Info (12023): Found entity 1: buzzer_top File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/buzzer_top.sv Line: 23
+Info (12021): Found 1 design units, including 1 entities, in source file Buzzer/buzzer_fsm_tb.sv
+    Info (12023): Found entity 1: buzzer_fsm_tb File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/buzzer_fsm_tb.sv Line: 11
+Info (12021): Found 1 design units, including 1 entities, in source file Buzzer/buzzer_fsm.sv
+    Info (12023): Found entity 1: buzzer_fsm File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/buzzer_fsm.sv Line: 31
+Info (12021): Found 1 design units, including 1 entities, in source file Buzzer/beep_counter_tb.sv
+    Info (12023): Found entity 1: beep_counter_tb File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/beep_counter_tb.sv Line: 14
+Info (12021): Found 1 design units, including 1 entities, in source file Buzzer/beep_counter.sv
+    Info (12023): Found entity 1: beep_counter File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/beep_counter.sv Line: 21
+Info (12021): Found 1 design units, including 1 entities, in source file ALU/ALU_tb.sv
+    Info (12023): Found entity 1: ALU_tb File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/ALU/ALU_tb.sv Line: 11
+Info (12021): Found 1 design units, including 1 entities, in source file ALU/ALU_Substractor.sv
+    Info (12023): Found entity 1: ALU_Substractor File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/ALU/ALU_Substractor.sv Line: 8
+Info (12021): Found 1 design units, including 1 entities, in source file ALU/ALU_Adder.sv
+    Info (12023): Found entity 1: ALU_Adder File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/ALU/ALU_Adder.sv Line: 10
+Info (12021): Found 1 design units, including 1 entities, in source file ALU/ALU.sv
+    Info (12023): Found entity 1: ALU File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/ALU/ALU.sv Line: 19
+Info (12021): Found 1 design units, including 1 entities, in source file elevator_fsm.sv
+    Info (12023): Found entity 1: elevator_fsm File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/elevator_fsm.sv Line: 14
+Info (12021): Found 1 design units, including 1 entities, in source file Demos/pwm_demo.sv
+    Info (12023): Found entity 1: pwm_demo File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Demos/pwm_demo.sv Line: 4
+Info (12127): Elaborating entity "elevator_demo_top" for the top level hierarchy
+Info (12128): Elaborating entity "elevator_fsm" for hierarchy "elevator_fsm:u_fsm" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Demos/elevator_demo_top.sv Line: 77
+Info (12128): Elaborating entity "mic_demo" for hierarchy "mic_demo:u_mic" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Demos/elevator_demo_top.sv Line: 98
+Info (12128): Elaborating entity "debounce" for hierarchy "mic_demo:u_mic|debounce:u_debounce" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Demos/mic_demo.sv Line: 49
+Info (12128): Elaborating entity "mic_top" for hierarchy "mic_demo:u_mic|mic_top:u_mic_top" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Demos/mic_demo.sv Line: 68
+Info (12128): Elaborating entity "mic_control_fsm" for hierarchy "mic_demo:u_mic|mic_top:u_mic_top|mic_control_fsm:mic_fsm" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Microphone/modules/mic_top.sv Line: 51
+Info (12128): Elaborating entity "flip_flop_d" for hierarchy "mic_demo:u_mic|mic_top:u_mic_top|mic_control_fsm:mic_fsm|flip_flop_d:ff_s1" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Microphone/modules/mic_control_fsm.sv Line: 51
+Info (12128): Elaborating entity "mic_saver" for hierarchy "mic_demo:u_mic|mic_top:u_mic_top|mic_saver:mic_regs" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Microphone/modules/mic_top.sv Line: 62
+Info (12128): Elaborating entity "binary_counter" for hierarchy "mic_demo:u_mic|mic_top:u_mic_top|binary_counter:mic_listen_timer" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Microphone/modules/mic_top.sv Line: 72
+Info (12128): Elaborating entity "buzzer_top" for hierarchy "buzzer_top:u_buzzer" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Demos/elevator_demo_top.sv Line: 113
+Info (12128): Elaborating entity "buzzer_fsm" for hierarchy "buzzer_top:u_buzzer|buzzer_fsm:u_fsm" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/buzzer_top.sv Line: 64
+Info (12128): Elaborating entity "counter" for hierarchy "buzzer_top:u_buzzer|counter:u_beep_timer" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/buzzer_top.sv Line: 75
+Info (12128): Elaborating entity "comparator" for hierarchy "buzzer_top:u_buzzer|counter:u_beep_timer|comparator:u_cmp" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/counter.sv Line: 39
+Info (12128): Elaborating entity "incrementer" for hierarchy "buzzer_top:u_buzzer|counter:u_beep_timer|incrementer:u_inc" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/counter.sv Line: 48
+Info (12128): Elaborating entity "flipflopD" for hierarchy "buzzer_top:u_buzzer|counter:u_beep_timer|flipflopD:u_dff" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/counter.sv Line: 57
+Info (12128): Elaborating entity "beep_counter" for hierarchy "buzzer_top:u_buzzer|beep_counter:u_beep_counter" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/buzzer_top.sv Line: 98
+Info (12128): Elaborating entity "incrementer" for hierarchy "buzzer_top:u_buzzer|beep_counter:u_beep_counter|incrementer:u_inc" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/beep_counter.sv Line: 38
+Info (12128): Elaborating entity "flipflopD" for hierarchy "buzzer_top:u_buzzer|beep_counter:u_beep_counter|flipflopD:u_dff" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/beep_counter.sv Line: 47
+Info (12128): Elaborating entity "comparator" for hierarchy "buzzer_top:u_buzzer|beep_counter:u_beep_counter|comparator:u_cmp" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Buzzer/beep_counter.sv Line: 55
+Info (12128): Elaborating entity "ALU" for hierarchy "ALU:u_alu" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/Demos/elevator_demo_top.sv Line: 131
+Info (12128): Elaborating entity "ALU_Adder" for hierarchy "ALU:u_alu|ALU_Adder:adder" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/ALU/ALU.sv Line: 105
+Warning (10036): Verilog HDL or VHDL warning at ALU_Adder.sv(47): object "sum_check" assigned a value but never read File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/ALU/ALU_Adder.sv Line: 47
+Info (12128): Elaborating entity "ALU_Substractor" for hierarchy "ALU:u_alu|ALU_Substractor:substractor" File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/ALU/ALU.sv Line: 114
+Warning (10036): Verilog HDL or VHDL warning at ALU_Substractor.sv(39): object "diff" assigned a value but never read File: /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/ALU/ALU_Substractor.sv Line: 39
+Info (144001): Generated suppressed messages file /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/output_files/Elevator.map.smsg
+Info: Quartus Prime Analysis & Elaboration was successful. 0 errors, 4 warnings
+    Info: Peak virtual memory: 726 megabytes
+    Info: Processing ended: Mon Apr  6 03:29:35 2026
+    Info: Elapsed time: 00:00:06
+    Info: Total CPU time (on all processors): 00:00:19
+
+
++--------------------------------------------+
+; Analysis & Elaboration Suppressed Messages ;
++--------------------------------------------+
+The suppressed messages can be found in /home/srobles/Desktop/Repos/-sboza-compu-archi-found-G1-2025/Proyecto1/output_files/Elevator.map.smsg.
+
+

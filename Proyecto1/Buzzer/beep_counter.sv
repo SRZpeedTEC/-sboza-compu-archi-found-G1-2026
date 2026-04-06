@@ -38,7 +38,7 @@ module beep_counter #(
     );
 
     // registro del contador
-    dff #(.WIDTH(WIDTH)) u_dff (
+    flipflopD #(.WIDTH(WIDTH)) u_dff (
         .clk   (clk),
         .reset (reset),
         .en    (en),
