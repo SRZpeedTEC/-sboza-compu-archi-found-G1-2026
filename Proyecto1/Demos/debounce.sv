@@ -1,5 +1,5 @@
 // =============================================================================
-// debounce — Filtro de rebote para señales mecánicas
+// debounce — Filtro de rebote para señales mecánicas (estructural)
 //
 // Parámetros:
 //   CLK_FREQ    : frecuencia del reloj en Hz (default 50MHz)
@@ -10,11 +10,11 @@
 //   Solo cuando btn_in se mantiene estable DEBOUNCE_MS ms completos
 //   se transfiere el valor a btn_out.
 //
-// Puertos:
-//   clk     : reloj del sistema
-//   reset   : reset asíncrono activo alto
-//   btn_in  : señal sucia del botón
-//   btn_out : señal limpia y estable
+// Implementación:
+//   - incrementer   para counter+1
+//   - eq_comparator para counter==TARGET
+//   - Lógica next_counter con AND/OR (misma mascara que ALU.sv y counter_pwm.sv)
+//   - always_ff para todos los registros
 // =============================================================================
 module debounce #(
     parameter integer CLK_FREQ    = 50_000_000,
@@ -28,64 +28,79 @@ module debounce #(
 
     // -------------------------------------------------------------------------
     // Calculo del target: ciclos necesarios para DEBOUNCE_MS milisegundos
+    // (localparam: calculo en tiempo de elaboracion, no genera hardware)
     // -------------------------------------------------------------------------
-    localparam integer TARGET = (CLK_FREQ / 1000) * DEBOUNCE_MS;
+    localparam integer TARGET     = (CLK_FREQ / 1000) * DEBOUNCE_MS;
     localparam integer TIMER_BITS = $clog2(TARGET + 2);
 
+    localparam logic [TIMER_BITS-1:0] TARGET_VEC = TARGET[TIMER_BITS-1:0];
 
     // -------------------------------------------------------------------------
     // Registros internos
     // -------------------------------------------------------------------------
-    logic btn_sync;                      // btn_in sincronizado al dominio del reloj
-    logic btn_prev;                      // valor anterior para detectar cambio
-    logic [TIMER_BITS-1:0] counter;      // contador de estabilidad
+    logic btn_sync;
+    logic btn_prev;
+    logic [TIMER_BITS-1:0] counter;
 
     // -------------------------------------------------------------------------
     // Sincronizador: evita metaestabilidad al cruzar dominio asincrono->sincrono
     // -------------------------------------------------------------------------
-    always @(posedge clk or posedge reset)
+    always_ff @(posedge clk or posedge reset)
         if (reset) btn_sync <= 1'b0;
         else       btn_sync <= btn_in;
 
     // -------------------------------------------------------------------------
     // Registro del valor previo para detectar cambio en btn_sync
     // -------------------------------------------------------------------------
-    always @(posedge clk or posedge reset)
+    always_ff @(posedge clk or posedge reset)
         if (reset) btn_prev <= 1'b0;
         else       btn_prev <= btn_sync;
 
     // -------------------------------------------------------------------------
-    // Detector de cambio: si btn_sync != btn_prev, la señal cambio este ciclo
+    // Detector de cambio: XOR entre ciclo actual y anterior
     // -------------------------------------------------------------------------
     wire changed;
     assign changed = btn_sync ^ btn_prev;
 
     // -------------------------------------------------------------------------
-    // Contador de estabilidad
-    // Se reinicia si hay cambio, incrementa si no llego al target
+    // Incrementer y comparador para el contador de estabilidad
     // -------------------------------------------------------------------------
     wire [TIMER_BITS-1:0] counter_inc;
-    assign counter_inc = counter + 1'b1;
+    incrementer #(.WIDTH(TIMER_BITS)) u_inc (
+        .in  (counter),
+        .out (counter_inc)
+    );
 
     wire at_target;
-    assign at_target = (counter == TARGET[TIMER_BITS-1:0]);
+    eq_comparator #(.WIDTH(TIMER_BITS)) u_cmp (
+        .a  (counter),
+        .b  (TARGET_VEC),
+        .eq (at_target)
+    );
 
+    // -------------------------------------------------------------------------
+    // next_counter (tres casos mutuamente excluyentes):
+    //   changed=1              → 0          (reset del contador)
+    //   changed=0, at_target=1 → counter    (hold, ya llegó)
+    //   changed=0, at_target=0 → counter+1  (sigue contando)
+    // Cuando changed=1: ambos terminos son 0, resultado = 0. Sin ?:
+    // -------------------------------------------------------------------------
     wire [TIMER_BITS-1:0] next_counter;
-    assign next_counter = changed    ? {TIMER_BITS{1'b0}} :
-                          at_target  ? counter             :
-                                       counter_inc;
+    assign next_counter = ({TIMER_BITS{~changed &  at_target}} & counter)
+                        | ({TIMER_BITS{~changed & ~at_target}} & counter_inc);
 
-    always @(posedge clk or posedge reset)
+    always_ff @(posedge clk or posedge reset)
         if (reset) counter <= {TIMER_BITS{1'b0}};
         else       counter <= next_counter;
 
     // -------------------------------------------------------------------------
-    // Salida: se actualiza solo cuando el contador llega al target
+    // Salida: se actualiza combinacionalmente y se registra en FF
     // -------------------------------------------------------------------------
-    always @(posedge clk or posedge reset)
-        if (reset)                    btn_out <= 1'b0;
-        else if (at_target & btn_sync) btn_out <= 1'b1;
-        else                           btn_out <= 1'b0;
-        
+    wire next_btn_out;
+    assign next_btn_out = at_target & btn_sync;
+
+    always_ff @(posedge clk or posedge reset)
+        if (reset) btn_out <= 1'b0;
+        else       btn_out <= next_btn_out;
 
 endmodule

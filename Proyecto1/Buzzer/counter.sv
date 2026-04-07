@@ -32,7 +32,7 @@ module counter #(
     logic             en_internal;
 
     // done: comparacion combinacional
-    comparator #(.WIDTH(WIDTH)) u_cmp (
+    eq_comparator #(.WIDTH(WIDTH)) u_cmp (
         .a  (count),
         .b  (target),
         .eq (done)

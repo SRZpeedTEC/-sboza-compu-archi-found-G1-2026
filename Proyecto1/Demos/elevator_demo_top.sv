@@ -133,9 +133,9 @@ module elevator_demo_top #(
     // -------------------------------------------------------------------------
     // LED[3] — mic_done
     // -------------------------------------------------------------------------
-	 assign led[3] = (mode_mic == 3'b010); // READBIT0 — LSB
-	 assign led[4] = (mode_mic == 3'b011); // READBIT1
-	 assign led[5] = (mode_mic == 3'b100); // READBIT2
-	 assign led[6] = (mode_mic == 3'b101); // READBIT3 — MSB
+	 assign led[3] = ~mode_mic[2] & mode_mic[1] & ~mode_mic[0]; // READBIT0 — LSB  (010)
+	 assign led[4] = ~mode_mic[2] & mode_mic[1] &  mode_mic[0]; // READBIT1        (011)
+	 assign led[5] =  mode_mic[2] & ~mode_mic[1] & ~mode_mic[0]; // READBIT2       (100)
+	 assign led[6] =  mode_mic[2] & ~mode_mic[1] &  mode_mic[0]; // READBIT3 — MSB (101)
 
 endmodule

@@ -48,7 +48,7 @@ module beep_counter #(
 
     // done: combinacional sobre count_next
     // valido cuando en=1, que es exactamente cuando la FSM lo necesita
-    comparator #(.WIDTH(WIDTH)) u_cmp (
+    eq_comparator #(.WIDTH(WIDTH)) u_cmp (
         .a  (count_next),
         .b  (target),
         .eq (done)

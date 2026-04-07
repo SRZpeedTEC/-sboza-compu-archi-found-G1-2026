@@ -74,10 +74,19 @@ module ALU #(
     // next_timer:  mascareo con {~reset_timer} para forzar 0 sin mux explicito
     // -------------------------------------------------------------------------
     wire tick;
-    assign tick = (timer == TIMER_MAX);
+    wire [TIMER_BITS-1:0] timer_max_vec;
+    assign timer_max_vec = TIMER_MAX[TIMER_BITS-1:0];
+    eq_comparator #(.WIDTH(TIMER_BITS)) u_tick_cmp (
+        .a  (timer),
+        .b  (timer_max_vec),
+        .eq (tick)
+    );
 
     wire [TIMER_BITS-1:0] timer_inc;
-    assign timer_inc = timer + 1'b1;
+    incrementer #(.WIDTH(TIMER_BITS)) u_timer_inc (
+        .in  (timer),
+        .out (timer_inc)
+    );
 
     wire reset_timer;
     assign reset_timer = load_safe | tick;
@@ -85,7 +94,7 @@ module ALU #(
     wire [TIMER_BITS-1:0] next_timer;
     assign next_timer = {TIMER_BITS{~reset_timer}} & timer_inc;
 
-    always @(posedge clk or posedge reset)
+    always_ff @(posedge clk or posedge reset)
         if (reset) timer <= {TIMER_BITS{1'b0}};
         else       timer <= next_timer;
 
@@ -199,7 +208,7 @@ module ALU #(
     assign next_B[2] = (update & B_comb[2]) | (~update & B[2]);
     assign next_B[3] = (update & B_comb[3]) | (~update & B[3]);
 
-    always @(posedge clk or posedge reset)
+    always_ff @(posedge clk or posedge reset)
         if (reset) begin
             A <= 4'b0001;
             B <= 4'b0000;
@@ -216,7 +225,7 @@ module ALU #(
     wire next_active;
     assign next_active = load_safe | (active & enable);
 
-    always @(posedge clk or posedge reset)
+    always_ff @(posedge clk or posedge reset)
         if (reset) active <= 1'b0;
         else       active <= next_active;
 

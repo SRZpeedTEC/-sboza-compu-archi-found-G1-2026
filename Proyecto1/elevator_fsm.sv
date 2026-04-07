@@ -53,13 +53,12 @@ module elevator_fsm (
     logic [10:0] state;
     logic [10:0] next_state;
 
-    always @(posedge clk or posedge reset)
+    always_ff @(posedge clk or posedge reset)
         if (reset) state <= 11'b00000000001;
         else       state <= next_state;
 
     // -------------------------------------------------------------------------
-    // Ecuaciones de next_state — derivadas directamente de la tabla de
-    // transiciones. Cada bit es OR de los terminos que apuntan a ese estado.
+    // Ecuaciones de next_state 
     // -------------------------------------------------------------------------
 
     // IDLE: se queda si init_system=0, regresa desde WAIT_MOVEMENT si done=1
@@ -102,8 +101,7 @@ module elevator_fsm (
                                      | (state[WAIT_MOVEMENT] & ~done);
 
     // -------------------------------------------------------------------------
-    // Ecuaciones de salida — Moore puro: dependen unicamente del estado actual.
-    // Cada salida es OR de los bits de estado donde esa salida es 1.
+    // Ecuaciones de salida 
     // -------------------------------------------------------------------------
 
     // activate_mic: activo en IDLE y todos los estados READ
