@@ -47,6 +47,8 @@ module buzzer_top #(
     // -------------------------------------------------------------------------
     // FSM
     // -------------------------------------------------------------------------
+    logic fsm_led;
+
     buzzer_fsm u_fsm (
         .clk              (clk),
         .reset            (reset),
@@ -54,7 +56,7 @@ module buzzer_top #(
         .beep_timer_done  (beep_timer_done),
         .pause_timer_done (pause_timer_done),
         .beeps_done       (beeps_done),
-        .led              (led),
+        .led              (fsm_led),
         .buzzer_done      (buzzer_done),
         .beep_timer_en    (beep_timer_en),
         .pause_timer_en   (pause_timer_en),
@@ -62,6 +64,31 @@ module buzzer_top #(
         .pause_timer_reset(pause_timer_reset),
         .beep_cnt_reset   (beep_cnt_reset)
     );
+
+    // -------------------------------------------------------------------------
+    // Generador de tono ~1kHz para buzzer pasivo
+    // Semiperíodo = 25,000 ciclos @ 50MHz → target = 24_999
+    // -------------------------------------------------------------------------
+    logic tone_done;
+    logic tone_toggle;
+    logic tone_reset;
+
+    assign tone_reset = reset | ~fsm_led;
+
+    counter #(.WIDTH(16)) u_tone (
+        .clk   (clk),
+        .reset (tone_reset),
+        .en    (fsm_led),
+        .target(16'd24_999),
+        .done  (tone_done)
+    );
+
+    always_ff @(posedge clk or posedge tone_reset) begin
+        if (tone_reset) tone_toggle <= 1'b0;
+        else if (tone_done) tone_toggle <= ~tone_toggle;
+    end
+
+    assign led = fsm_led & tone_toggle;
 
     // -------------------------------------------------------------------------
     // Contador de 1s — beep activo
