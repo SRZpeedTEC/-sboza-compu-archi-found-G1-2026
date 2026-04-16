@@ -74,10 +74,19 @@ module ALU #(
     // next_timer:  mascareo con {~reset_timer} para forzar 0 sin mux explicito
     // -------------------------------------------------------------------------
     wire tick;
-    assign tick = (timer == TIMER_MAX);
+    wire [TIMER_BITS-1:0] timer_max_vec;
+    assign timer_max_vec = TIMER_MAX[TIMER_BITS-1:0];
+    eq_comparator #(.WIDTH(TIMER_BITS)) u_tick_cmp (
+        .a  (timer),
+        .b  (timer_max_vec),
+        .eq (tick)
+    );
 
     wire [TIMER_BITS-1:0] timer_inc;
-    assign timer_inc = timer + 1'b1;
+    incrementer #(.WIDTH(TIMER_BITS)) u_timer_inc (
+        .in  (timer),
+        .out (timer_inc)
+    );
 
     wire reset_timer;
     assign reset_timer = load_safe | tick;
@@ -85,7 +94,7 @@ module ALU #(
     wire [TIMER_BITS-1:0] next_timer;
     assign next_timer = {TIMER_BITS{~reset_timer}} & timer_inc;
 
-    always @(posedge clk or posedge reset)
+    always_ff @(posedge clk or posedge reset)
         if (reset) timer <= {TIMER_BITS{1'b0}};
         else       timer <= next_timer;
 
@@ -199,7 +208,7 @@ module ALU #(
     assign next_B[2] = (update & B_comb[2]) | (~update & B[2]);
     assign next_B[3] = (update & B_comb[3]) | (~update & B[3]);
 
-    always @(posedge clk or posedge reset)
+    always_ff @(posedge clk or posedge reset)
         if (reset) begin
             A <= 4'b0001;
             B <= 4'b0000;
@@ -216,7 +225,7 @@ module ALU #(
     wire next_active;
     assign next_active = load_safe | (active & enable);
 
-    always @(posedge clk or posedge reset)
+    always_ff @(posedge clk or posedge reset)
         if (reset) active <= 1'b0;
         else       active <= next_active;
 
@@ -235,44 +244,72 @@ module ALU #(
     assign pwm_level[0] = (~B[3] & ~B[2] & ~B[1] &  B[0])   // B=1
                         | (~B[3] &  B[2] & ~B[1] & ~B[0]);   // B=4
 
-    // -------------------------------------------------------------------------
-    // Decoder 7 segmentos — anodo comun, muestra A en hex (0-F)
-    // seg_out en logica positiva (1=encendido), invertido al final para anodo comun
-    // -------------------------------------------------------------------------
-    wire [6:0] seg_out;
+// -------------------------------------------------------------------------
+// Decoder 7 segmentos — anodo comun, muestra A en hex (0-F)
+// seg_out en logica positiva (1=encendido), invertido al final para anodo comun
+// -------------------------------------------------------------------------
+wire [6:0] seg_out;
 
-    assign seg_out[0] = ~(~A[3] & ~A[2] & ~A[1] &  A[0])    // 1
-                      & ~(~A[3] &  A[2] & ~A[1] & ~A[0]);   // 4
+// g (middle): apagado en 0,1,7,C
+assign seg_out[0] =
+      ~(~A[3] & ~A[2] & ~A[1] & ~A[0])   // 0
+    & ~(~A[3] & ~A[2] & ~A[1] &  A[0])   // 1
+    & ~(~A[3] &  A[2] &  A[1] &  A[0])   // 7
+    & ~( A[3] &  A[2] & ~A[1] & ~A[0]);  // C
 
-    assign seg_out[1] = ~(~A[3] & ~A[2] &  A[1] &  A[0])    // 3
-                      & ~(~A[3] &  A[2] &  A[1] & ~A[0])    // 6
-                      & ~( A[3] & ~A[2] &  A[1] &  A[0])    // B
-                      & ~( A[3] &  A[2] &  A[1] & ~A[0]);   // E
+// f (top-left): apagado en 1,2,3,7,D
+assign seg_out[1] =
+      ~(~A[3] & ~A[2] & ~A[1] &  A[0])   // 1
+    & ~(~A[3] & ~A[2] &  A[1] & ~A[0])   // 2
+    & ~(~A[3] & ~A[2] &  A[1] &  A[0])   // 3
+    & ~(~A[3] &  A[2] &  A[1] &  A[0])   // 7
+    & ~( A[3] &  A[2] & ~A[1] &  A[0]);  // D
 
-    assign seg_out[2] = ~(~A[3] & ~A[2] &  A[1] & ~A[0]);   // 2
+// e (bottom-left): apagado en 1,3,4,5,7,9
+assign seg_out[2] =
+      ~(~A[3] & ~A[2] & ~A[1] &  A[0])   // 1
+    & ~(~A[3] & ~A[2] &  A[1] &  A[0])   // 3
+    & ~(~A[3] &  A[2] & ~A[1] & ~A[0])   // 4
+    & ~(~A[3] &  A[2] & ~A[1] &  A[0])   // 5
+    & ~(~A[3] &  A[2] &  A[1] &  A[0])   // 7
+    & ~( A[3] & ~A[2] & ~A[1] &  A[0]);  // 9
 
-    assign seg_out[3] = ~(~A[3] & ~A[2] & ~A[1] &  A[0])    // 1
-                      & ~(~A[3] &  A[2] & ~A[1] & ~A[0])    // 4
-                      & ~(~A[3] &  A[2] &  A[1] &  A[0])    // 7
-                      & ~( A[3] & ~A[2] &  A[1] & ~A[0])    // A
-                      & ~( A[3] &  A[2] &  A[1] &  A[0]);   // F
+// d (bottom): apagado en 1,4,7,A,F
+assign seg_out[3] =
+      ~(~A[3] & ~A[2] & ~A[1] &  A[0])   // 1
+    & ~(~A[3] &  A[2] & ~A[1] & ~A[0])   // 4
+    & ~(~A[3] &  A[2] &  A[1] &  A[0])   // 7
+    & ~( A[3] & ~A[2] &  A[1] & ~A[0])   // A
+    & ~( A[3] &  A[2] &  A[1] &  A[0]);  // F
 
-    assign seg_out[4] = ~(~A[3] & ~A[2] & ~A[1] &  A[0])    // 1
-                      & ~(~A[3] & ~A[2] &  A[1] &  A[0])    // 3
-                      & ~(~A[3] &  A[2] & ~A[1] & ~A[0])    // 4
-                      & ~(~A[3] &  A[2] & ~A[1] &  A[0])    // 5
-                      & ~(~A[3] &  A[2] &  A[1] &  A[0])    // 7
-                      & ~( A[3] & ~A[2] & ~A[1] &  A[0]);   // 9
+// c (bottom-right): apagado en 2,C,E,F
+assign seg_out[4] =
+      ~(~A[3] & ~A[2] &  A[1] & ~A[0])   // 2
+    & ~( A[3] &  A[2] & ~A[1] & ~A[0])   // C
+    & ~( A[3] &  A[2] &  A[1] & ~A[0])   // E
+    & ~( A[3] &  A[2] &  A[1] &  A[0]);  // F
 
-    assign seg_out[5] = ~(~A[3] & ~A[2] & ~A[1] &  A[0])    // 1
-                      & ~(~A[3] & ~A[2] &  A[1] & ~A[0])    // 2
-                      & ~(~A[3] & ~A[2] &  A[1] &  A[0])    // 3
-                      & ~(~A[3] &  A[2] &  A[1] &  A[0]);   // 7
+// b (top-right): apagado en 5,6,B,C,E,F
+assign seg_out[5] =
+      ~(~A[3] &  A[2] & ~A[1] &  A[0])   // 5
+    & ~(~A[3] &  A[2] &  A[1] & ~A[0])   // 6
+    & ~( A[3] & ~A[2] &  A[1] &  A[0])   // B
+    & ~( A[3] &  A[2] & ~A[1] & ~A[0])   // C
+    & ~( A[3] &  A[2] &  A[1] & ~A[0])   // E
+    & ~( A[3] &  A[2] &  A[1] &  A[0]);  // F
 
-    assign seg_out[6] = ~(~A[3] & ~A[2] & ~A[1] & ~A[0])    // 0
-                      & ~(~A[3] & ~A[2] & ~A[1] &  A[0])    // 1
-                      & ~(~A[3] &  A[2] &  A[1] &  A[0]);   // 7
+// a (top): apagado en 1,4,B,D
+assign seg_out[6] =
+      ~(~A[3] & ~A[2] & ~A[1] &  A[0])   // 1
+    & ~(~A[3] &  A[2] & ~A[1] & ~A[0])   // 4
+    & ~( A[3] & ~A[2] &  A[1] &  A[0])   // B
+    & ~( A[3] &  A[2] & ~A[1] &  A[0]);  // D
 
-    assign seg = ~seg_out;
-
+assign seg[0] = ~seg_out[0];
+assign seg[1] = ~seg_out[1];
+assign seg[2] = ~seg_out[2];
+assign seg[3] = ~seg_out[3];
+assign seg[4] = ~seg_out[4];
+assign seg[5] = ~seg_out[5];
+assign seg[6] = ~seg_out[6];
 endmodule

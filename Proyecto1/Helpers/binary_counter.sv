@@ -11,25 +11,31 @@ module binary_counter #(
 
     localparam int unsigned TERMINAL_COUNT = ((CLK_FREQ_HZ / 1000) * LISTEN_TIME_MS) - 1;
     localparam int unsigned WIDTH = $clog2(TERMINAL_COUNT + 1);
-
     localparam logic [WIDTH-1:0] TERMINAL_COUNT_VEC = TERMINAL_COUNT[WIDTH-1:0];
 
     logic [WIDTH-1:0] count_q;
     logic [WIDTH-1:0] count_d;
     logic count_enable;
 
-    assign mic_times_done = (count_q == TERMINAL_COUNT_VEC);
-    assign count_enable   = enable & ~mic_times_done;
+    eq_comparator #(.WIDTH(WIDTH)) u_done_cmp (
+        .a  (count_q),
+        .b  (TERMINAL_COUNT_VEC),
+        .eq (mic_times_done)
+    );
+    assign count_enable = enable & ~mic_times_done;
+
+    // and_ones[i] = count_q[0] & count_q[1] & ... & count_q[i]
+    // Reemplaza la reduccion &count_q[i-1:0] con cadena AND explicita bit a bit.
+    wire [WIDTH-1:0] and_ones;
+    assign and_ones[0] = count_q[0];
 
     assign count_d[0] = count_enable & ~count_q[0];
 
     genvar i;
     generate
         for (i = 1; i < WIDTH; i = i + 1) begin : gen_counter_bits
-            logic lower_bits_all_ones;
-
-            assign lower_bits_all_ones = &count_q[i-1:0];
-            assign count_d[i] = count_enable & (count_q[i] ^ lower_bits_all_ones);
+            assign and_ones[i] = and_ones[i-1] & count_q[i];
+            assign count_d[i]  = count_enable & (count_q[i] ^ and_ones[i-1]);
 
             flip_flop_d ff_count (
                 .clk(clk),
