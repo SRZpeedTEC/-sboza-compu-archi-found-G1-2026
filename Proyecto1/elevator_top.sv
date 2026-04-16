@@ -11,7 +11,7 @@
 // LEDs de debug (mismos que la demo):
 //   led[0] : beep activo (mismo que buzzer_out)
 //   led[1] : ventana de escucha activa (listening_led)
-//   led[2] : clap registrado (mic_in)
+//   led[2] : aplauso registrado en la ventana de escucha
 //   led[3] : mode_mic bit READBIT0 (010)
 //   led[4] : mode_mic bit READBIT1 (011)
 //   led[5] : mode_mic bit READBIT2 (100)
@@ -29,7 +29,7 @@ module elevator_top #(
 )(
     input  logic        clk,         // 50 MHz
     input  logic        reset,       // Boton reset activo LOW (KEY en DE1-SoC)
-    input  logic        mic_in,      // Sensor digital de sonido (HIGH = sonido detectado)
+    input  logic        mic_in,      // Sensor digital de sonido (salida actual tratada como activa en LOW)
     output logic        buzzer_out,  // Buzzer activo (HIGH = beep)
     output logic        motor_pwm,   // PWM hacia ENA del H-bridge (velocidad)
     output logic        motor_in1,   // IN1 del H-bridge
@@ -61,6 +61,7 @@ module elevator_top #(
     // Wires internos — mic_top -> ALU y motor
     // -------------------------------------------------------------------------
     logic        dir_reg;
+    logic        clap_registered;
     logic [3:0]  num_reg;
 
     // -------------------------------------------------------------------------
@@ -72,6 +73,44 @@ module elevator_top #(
     // Wire PWM — ALU.pwm_level -> pwm_top
     // -------------------------------------------------------------------------
     logic [2:0]  pwm_level;
+    localparam int unsigned MIC_HOLDOFF_CYCLES = CLK_FREQ / 20;
+    localparam int unsigned MIC_HOLDOFF_WIDTH  = $clog2(MIC_HOLDOFF_CYCLES + 1);
+
+    // -------------------------------------------------------------------------
+    // Acondicionamiento del microfono:
+    //   - sincroniza la entrada asincrona a clk
+    //   - convierte la salida activa baja del modulo en un pulso limpio
+    //   - bloquea retriggers breves por vibracion/ruido del sensor
+    // -------------------------------------------------------------------------
+    logic mic_sync_0;
+    logic mic_sync_1;
+    logic mic_active;
+    logic mic_active_prev;
+    logic clap_pulse;
+    logic mic_holdoff_active;
+    logic [MIC_HOLDOFF_WIDTH-1:0] mic_holdoff_count;
+
+    always_ff @(posedge clk or posedge reset_active) begin
+        if (reset_active) begin
+            mic_sync_0       <= 1'b1;
+            mic_sync_1       <= 1'b1;
+            mic_active_prev  <= 1'b0;
+            mic_holdoff_count <= '0;
+        end else begin
+            mic_sync_0      <= mic_in;
+            mic_sync_1      <= mic_sync_0;
+            mic_active_prev <= mic_active;
+
+            if (clap_pulse)
+                mic_holdoff_count <= MIC_HOLDOFF_CYCLES[MIC_HOLDOFF_WIDTH-1:0];
+            else if (mic_holdoff_active)
+                mic_holdoff_count <= mic_holdoff_count - 1'b1;
+        end
+    end
+
+    assign mic_active = ~mic_sync_1;
+    assign mic_holdoff_active = (mic_holdoff_count != '0);
+    assign clap_pulse = mic_active & ~mic_active_prev & ~mic_holdoff_active;
 
     // -------------------------------------------------------------------------
     // FSM principal
@@ -91,8 +130,7 @@ module elevator_top #(
     );
 
     // -------------------------------------------------------------------------
-    // Microfono — sensor digital de sonido conectado directamente a clap_event
-    // El sensor ya tiene comparador integrado: salida limpia sin rebote mecanico
+    // Microfono — entrada sincronizada y convertida a pulso unico por aplauso
     // -------------------------------------------------------------------------
     mic_top #(
         .CLK_FREQ_HZ   (CLK_FREQ),
@@ -101,23 +139,24 @@ module elevator_top #(
         .clk          (clk),
         .reset        (reset_active),
         .activate_mic (activate_mic),
-        .clap_event   (mic_in),
+        .clap_event   (clap_pulse),
         .mode_mic     (mode_mic),
         .mic_done     (mic_done),
         .init_system  (init_system),
         .listening_led(led[1]),
+        .clap_registered(clap_registered),
         .dir_reg      (dir_reg),
         .num_reg      (num_reg)
     );
 
     // -------------------------------------------------------------------------
-    // Buzzer activo — la salida binaria de buzzer_top activa directamente
-    // el buzzer fisico (HIGH = beep encendido)
+    // Buzzer pasivo — buzzer_top entrega la onda cuadrada al pin S
     // led[0] refleja la misma señal para debug visual
     // -------------------------------------------------------------------------
     buzzer_top #(
-        .BEEP_TARGET (CLK_FREQ - 1),
-        .PAUSE_TARGET(CLK_FREQ / 2 - 1)
+        .BEEP_TARGET  (CLK_FREQ - 1),
+        .PAUSE_TARGET (CLK_FREQ / 2 - 1),
+        .ACTIVE_BUZZER(1'b0)
     ) u_buzzer (
         .clk         (clk),
         .reset       (reset_active),
@@ -177,10 +216,10 @@ module elevator_top #(
     // LEDs de debug
     // led[0] : buzzer_out (asignado junto al buzzer arriba)
     // led[1] : listening_led (asignado en u_mic arriba)
-    // led[2] : clap registrado — refleja mic_in directamente
+    // led[2] : aplauso registrado en el latch del microfono
     // led[3:6]: bits de modo del microfono para rastrear la lectura de bits
     // -------------------------------------------------------------------------
-    assign led[2] = mic_in;
+    assign led[2] = clap_registered;
     assign led[3] = ~mode_mic[2] & mode_mic[1] & ~mode_mic[0]; // READBIT0 (010)
     assign led[4] = ~mode_mic[2] & mode_mic[1] &  mode_mic[0]; // READBIT1 (011)
     assign led[5] =  mode_mic[2] & ~mode_mic[1] & ~mode_mic[0]; // READBIT2 (100)

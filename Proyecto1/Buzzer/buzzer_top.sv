@@ -22,7 +22,8 @@
 
 module buzzer_top #(
     parameter integer BEEP_TARGET  = 49_999_999,
-    parameter integer PAUSE_TARGET = 24_999_999
+    parameter integer PAUSE_TARGET = 24_999_999,
+    parameter bit     ACTIVE_BUZZER = 1'b0
 )(
     input  logic        clk,
     input  logic        reset,
@@ -66,29 +67,33 @@ module buzzer_top #(
     );
 
     // -------------------------------------------------------------------------
-    // Generador de tono ~1kHz para buzzer pasivo
-    // Semiperíodo = 25,000 ciclos @ 50MHz → target = 24_999
+    // Salida fisica:
+    //   ACTIVE_BUZZER=1 -> nivel DC durante el beep
+    //   ACTIVE_BUZZER=0 -> tono ~1kHz para buzzer pasivo
     // -------------------------------------------------------------------------
-    logic tone_done;
-    logic tone_toggle;
-    logic tone_reset;
+    localparam logic [15:0] TONE_HALF_PERIOD = 16'd24_999;
+
+    logic [15:0] tone_count;
+    logic        tone_toggle;
+    logic        tone_reset;
 
     assign tone_reset = reset | ~fsm_led;
 
-    counter #(.WIDTH(16)) u_tone (
-        .clk   (clk),
-        .reset (tone_reset),
-        .en    (fsm_led),
-        .target(16'd24_999),
-        .done  (tone_done)
-    );
-
     always_ff @(posedge clk or posedge tone_reset) begin
-        if (tone_reset) tone_toggle <= 1'b0;
-        else if (tone_done) tone_toggle <= ~tone_toggle;
+        if (tone_reset) begin
+            tone_count   <= 16'd0;
+            tone_toggle  <= 1'b0;
+        end else if (fsm_led) begin
+            if (tone_count == TONE_HALF_PERIOD) begin
+                tone_count  <= 16'd0;
+                tone_toggle <= ~tone_toggle;
+            end else begin
+                tone_count <= tone_count + 16'd1;
+            end
+        end
     end
 
-    assign led = fsm_led & tone_toggle;
+    assign led = ACTIVE_BUZZER ? fsm_led : (fsm_led & tone_toggle);
 
     // -------------------------------------------------------------------------
     // Contador de 1s — beep activo

@@ -16,6 +16,7 @@ module mic_top #(
     output logic mic_done,
     output logic init_system,
     output logic listening_led,
+    output logic clap_registered,
     output logic dir_reg,
     output logic [3:0] num_reg
 );
@@ -60,6 +61,8 @@ module mic_top #(
         .dir_reg(dir_reg),
         .num_reg(num_reg)
     );
+
+    assign clap_registered = seen_clap;
 
     binary_counter #(
         .CLK_FREQ_HZ(CLK_FREQ_HZ),
