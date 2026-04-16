@@ -1,0 +1,20 @@
+# Quartus generated files
+db/
+incremental_db/
+output_files/
+simulation/
+*.rpt
+*.summary
+*.smsg
+*.qws
+*.jdi
+*.sof
+*.pof
+
+# Backup files
+*.bak
+*.tmp
+*~
+
+# OS
+.DS_Store
