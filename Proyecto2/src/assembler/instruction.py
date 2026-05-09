@@ -1,19 +1,17 @@
 """
-instruction.py — Representación interna de instrucciones RISC-V RV32I
+instruction.py — Internal representation of RISC-V RV32I instructions
 
-Define dos cosas principales:
-  1. INSTRUCTION_SET: tabla que mapea cada mnemónico a su formato
-     (R/I/S/B/U/J), opcode, funct3 y funct7 según la especificación
-     RISC-V RV32I.
-  2. Instrucción (dataclass): estructura de datos que el parser llena
-     por cada línea de ensamblador. Contiene todos los campos
-     necesarios para que la ALU, la unidad de control y el pipeline
-     puedan ejecutar la instrucción sin volver a parsear el texto.
+Defines two main things:
+  1. INSTRUCTION_SET: lookup table mapping each mnemonic to its format
+     (R/I/S/B/U/J), opcode, funct3, and funct7 per the RV32I spec.
+  2. Instruction (dataclass): data structure filled by the parser for
+     every assembly line. Holds all fields the ALU, control unit, and
+     pipeline need to execute the instruction without re-parsing text.
 
-Instrucciones objetivo del simulador:
-  Aritmética : add, sub, addi, and, or, xor
-  Memoria    : lw, sw
-  Saltos     : beq, bne, jal, jalr
+Target instructions for the simulator:
+  Arithmetic : add, sub, addi, and, or, xor
+  Memory     : lw, sw
+  Jumps      : beq, bne, jal, jalr
 """
 from dataclasses import dataclass
 from typing import Optional

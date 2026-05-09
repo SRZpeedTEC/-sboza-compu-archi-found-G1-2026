@@ -1,27 +1,27 @@
 """
-base_processor.py — Clase base abstracta para todos los modelos de procesador
+base_processor.py — Abstract base class for all processor models
 
-Define el estado de hardware compartido y la interfaz común que deben
-implementar los cuatro modelos del simulador:
-  - Procesador uniciclo       (single_cycle.py)
-  - Procesador multiciclo     (multi_cycle.py)
-  - Segmentado con stalls     (pipeline_stalls.py)
-  - Segmentado con forwarding (pipeline_forwarding.py)
+Defines the shared hardware state and the common interface that each of
+the four simulator models must implement:
+  - Single-cycle processor      (single_cycle.py)
+  - Multi-cycle processor       (multi_cycle.py)
+  - Pipelined with stalls       (pipeline_stalls.py)
+  - Pipelined with forwarding   (pipeline_forwarding.py)
 
-Estado interno que BaseProcessor gestiona:
-  registers  — banco de 32 registros RV32I (RegisterFile)
-  memory     — memoria de datos byte-addressable (DataMemory)
-  metrics    — contadores de ciclos, CPI, stalls, hazards (Metrics)
-  pc         — Program Counter en bytes (int)
-  pipeline   — ocupación actual de las 5 etapas IF/ID/EX/MEM/WB
-  program    — lista de Instruction cargada por el parser
+Internal state managed by BaseProcessor:
+  registers  — 32-register RV32I file (RegisterFile)
+  memory     — byte-addressable data memory (DataMemory)
+  metrics    — cycle, CPI, stall, and hazard counters (Metrics)
+  pc         — Program Counter in bytes (int)
+  pipeline   — current occupancy of the five IF/ID/EX/MEM/WB stages
+  program    — list of Instructions loaded by the parser
 
-Interfaz que cada subclase debe implementar:
-  step() → bool   ejecuta un ciclo; retorna False cuando termina
-  run()           ejecuta el programa completo de una vez
+Interface every subclass must implement:
+  step() → bool   execute one cycle; return False when the program ends
+  run()           execute the full program at once
 
-state_snapshot() devuelve todo el estado en un dict serializable
-que la capa UI lee en cada ciclo para refrescar los paneles.
+state_snapshot() returns the complete processor state as a serialisable
+dict that the UI layer reads after every cycle to refresh all panels.
 """
 from abc import ABC, abstractmethod
 from typing import List, Optional

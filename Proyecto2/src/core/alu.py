@@ -1,24 +1,24 @@
 """
-alu.py — Unidad Aritmético-Lógica (ALU) RISC-V RV32I
+alu.py — Arithmetic Logic Unit (ALU) for RISC-V RV32I
 
-Implementa todas las operaciones que el datapath necesita para ejecutar
-las instrucciones del simulador. La unidad de control le indica a la
-ALU cuál operación realizar mediante una constante string (ALU_*).
+Implements every operation the datapath needs to execute the simulator's
+instruction set. The control unit selects the operation by passing one
+of the ALU_* string constants to execute().
 
-Operaciones disponibles:
-  ADD, SUB          — suma y resta (también usadas para calcular
-                       direcciones en lw, sw, jalr)
-  AND, OR, XOR      — lógicas bit a bit
-  SLL, SRL, SRA     — desplazamientos (lógico izquierdo, lógico derecho,
-                       aritmético derecho con extensión de signo)
-  SLT, SLTU         — set-less-than signed/unsigned (→ 0 o 1)
-  LUI               — pasa el operando B sin modificarlo (para lui)
-  SEQ, SNE          — comparadores para beq y bne (→ 1 si condición true)
-  SLT_B, SGE_B      — comparadores para blt y bge
-  SLTU_B, SGEU_B    — variantes unsigned para bltu y bgeu
+Available operations:
+  ADD, SUB          — addition and subtraction (also used to compute
+                       addresses for lw, sw, jalr)
+  AND, OR, XOR      — bitwise logical operations
+  SLL, SRL, SRA     — shifts (logical left, logical right,
+                       arithmetic right with sign extension)
+  SLT, SLTU         — set-less-than signed/unsigned (returns 0 or 1)
+  LUI               — passes operand B through unchanged (for lui)
+  SEQ, SNE          — equality comparators for beq and bne (1 if true)
+  SLT_B, SGE_B      — signed comparators for blt and bge
+  SLTU_B, SGEU_B    — unsigned variants for bltu and bgeu
 
-Toda aritmética interna se hace en signed 32-bit para respetar el
-comportamiento de complemento a dos del hardware real.
+All internal arithmetic is performed in signed 32-bit to match the
+two's-complement behaviour of real hardware.
 """
 
 # ALU operation identifiers

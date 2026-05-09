@@ -1,25 +1,25 @@
 """
-control_unit.py — Unidad de Control RISC-V RV32I
+control_unit.py — RISC-V RV32I Control Unit
 
-Decodifica el mnemónico de una instrucción y genera el conjunto de
-señales de control que dirigen a todos los demás módulos del datapath.
+Decodes an instruction mnemonic and produces the set of control signals
+that drive every other module in the datapath.
 
-La clase ControlUnit.decode(mnemonic) devuelve un ControlSignals con:
+ControlUnit.decode(mnemonic) returns a ControlSignals dataclass:
 
-  Señal            Qué controla
-  ─────────────────────────────────────────────────────────────────
-  reg_write       Habilita escritura en el banco de registros (rd)
-  mem_read        Activa lectura en la memoria de datos (lw)
-  mem_write       Activa escritura en la memoria de datos (sw)
-  mem_to_reg      Ruta el dato de memoria (y no de la ALU) a rd
-  alu_src_b       El segundo operando de la ALU es el inmediato
-  branch          Es una instrucción de salto condicional (beq, bne)
-  jump            Salto incondicional (jal, jalr)
-  jump_reg        Variante jalr: target = (rs1 + imm) & ~1
-  pc_plus4_to_reg Guarda PC+4 en rd como dirección de retorno
-  alu_op          Operación concreta que debe ejecutar la ALU
+  Signal            What it controls
+  ──────────────────────────────────────────────────────────────────
+  reg_write        Enable write to the register file (rd)
+  mem_read         Activate data-memory read (lw)
+  mem_write        Activate data-memory write (sw)
+  mem_to_reg       Route memory output (not ALU) to rd
+  alu_src_b        Second ALU operand is the immediate (not rs2)
+  branch           Instruction is a conditional branch (beq, bne)
+  jump             Unconditional jump (jal, jalr)
+  jump_reg         jalr variant: target = (rs1 + imm) & ~1
+  pc_plus4_to_reg  Save PC+4 into rd as the return address
+  alu_op           Specific ALU operation to perform
 
-Cobertura de las 12 instrucciones objetivo:
+Coverage of the 12 target instructions:
   add, sub         → R-type  | reg_write, ALU_ADD/SUB
   addi             → I-type  | reg_write, alu_src_b, ALU_ADD
   and, or, xor     → R-type  | reg_write, ALU_AND/OR/XOR

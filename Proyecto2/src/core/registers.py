@@ -1,15 +1,15 @@
 """
-registers.py — Banco de registros RISC-V RV32I
+registers.py — RISC-V RV32I register file
 
-Modela los 32 registros de propósito general (x0-x31) del procesador.
-Características principales:
-  - x0 (zero) es hardwired a 0: cualquier escritura a él se descarta.
-  - Todos los valores se mantienen en representación signed 32-bit
-    (complemento a 2), igual que el hardware real.
-  - Se puede acceder por índice numérico (0-31) o por nombre ABI
+Models the 32 general-purpose registers (x0-x31) of the processor.
+Key properties:
+  - x0 (zero) is hardwired to 0: any write to it is silently ignored.
+  - All values are kept as signed 32-bit integers (two's complement),
+    matching real hardware behaviour.
+  - Registers can be accessed by numeric index (0-31) or by ABI name
     (zero, ra, sp, a0, t0, s0, etc.).
-  - snapshot() devuelve un dict con todos los registros, que la UI
-    usa para actualizar la tabla de registros en cada ciclo.
+  - snapshot() returns a dict of all registers that the UI uses to
+    refresh the register table every cycle.
 """
 
 # ABI name -> register index (x0-x31)

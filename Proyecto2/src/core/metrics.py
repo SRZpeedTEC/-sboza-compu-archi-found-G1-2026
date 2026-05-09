@@ -1,21 +1,21 @@
 """
-metrics.py — Métricas de ejecución del simulador
+metrics.py — Simulator execution metrics
 
-Recolecta y expone estadísticas de rendimiento para cada modelo de
-procesador (uniciclo, multiciclo, pipeline con stalls, con forwarding).
+Collects and exposes performance statistics for each processor model
+(single-cycle, multi-cycle, pipeline with stalls, with forwarding).
 
-Métricas principales:
-  cycles               — ciclos de reloj transcurridos
-  instructions_executed— instrucciones completadas
-  cpi                  — Cycles Per Instruction (cycles / instructions)
-  stalls               — ciclos perdidos por dependencias de datos/control
-  hazards              — número de riesgos detectados
-  elapsed_time         — tiempo real de ejecución (segundos)
+Tracked metrics:
+  cycles                — clock cycles elapsed
+  instructions_executed — instructions completed
+  cpi                   — Cycles Per Instruction (cycles / instructions)
+  stalls                — cycles wasted due to data/control hazards
+  hazards               — number of hazards detected
+  elapsed_time          — wall-clock execution time in seconds
 
-Historial:
-  Cada vez que termina una ejecución se llama save_to_history(), que
-  guarda un ExecutionSnapshot inmutable en una lista rolling de hasta
-  MAX_HISTORY=10 entradas. La UI las muestra en una tabla comparativa.
+History:
+  Each time a run finishes, save_to_history() stores an immutable
+  ExecutionSnapshot in a rolling list of up to MAX_HISTORY=10 entries.
+  The UI displays them in a side-by-side comparison table.
 """
 import time
 from dataclasses import dataclass, field

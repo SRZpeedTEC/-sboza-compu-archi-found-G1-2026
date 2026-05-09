@@ -1,19 +1,19 @@
 """
-parser.py — Parser de ensamblador RISC-V de dos pasadas
+parser.py — Two-pass RISC-V assembly parser
 
-Convierte un programa en texto plano (sintaxis RISC-V estándar) en
-una lista de objetos Instruction listos para ser ejecutados.
+Converts a plain-text program (standard RISC-V syntax) into a list of
+Instruction objects ready for execution.
 
-Pasada 1 — recopila etiquetas:
-  Recorre las líneas contando direcciones (PC += 4 por instrucción)
-  y registra cada «etiqueta:» en el LabelTable.
+Pass 1 — label collection:
+  Walks every line counting addresses (PC += 4 per instruction) and
+  registers each "label:" definition into the LabelTable.
 
-Pasada 2 — decodifica instrucciones:
-  Por cada línea activa extrae el mnemónico y los operandos, resuelve
-  los registros (por nombre ABI o xN), los inmediatos y convierte las
-  referencias a etiquetas en offsets PC-relativos (beq, bne, jal).
+Pass 2 — instruction decoding:
+  For each active line, extracts the mnemonic and operands, resolves
+  registers (by ABI name or xN index), parses immediates, and converts
+  label references into PC-relative offsets (beq, bne, jal, jalr).
 
-Formatos soportados:
+Supported formats:
   R  →  add  rd, rs1, rs2
   I  →  addi rd, rs1, imm   |  lw rd, imm(rs1)  |  jalr rd, imm(rs1)
   S  →  sw   rs2, imm(rs1)
@@ -21,7 +21,7 @@ Formatos soportados:
   U  →  lui  rd, imm
   J  →  jal  rd, label
 
-Comentarios de línea: # o //  (se eliminan antes de procesar).
+Line comments: # or //  (stripped before processing).
 """
 import re
 from typing import List

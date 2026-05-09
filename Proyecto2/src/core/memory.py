@@ -1,18 +1,18 @@
 """
-memory.py — Memoria de datos del procesador RISC-V
+memory.py — RISC-V processor data memory
 
-Implementa una memoria de datos byte-addressable de tamaño configurable
-(por defecto 4 096 bytes) usando un diccionario sparse para eficiencia.
+Implements a byte-addressable data memory of configurable size
+(default 4 096 bytes) backed by a sparse dictionary for efficiency.
 
-Convenciones:
-  - Byte order: little-endian (igual que RISC-V RV32I).
-  - Accesos disponibles: byte (8 b), halfword (16 b), word (32 b).
-  - Signed / unsigned: los loads tienen variantes con y sin extensión
-    de signo (lb/lbu, lh/lhu, lw es siempre signed en RV32I).
-  - last_access: registra el último acceso para que la UI pueda
-    resaltar la celda de memoria activa en tiempo real.
+Conventions:
+  - Byte order: little-endian (matching RISC-V RV32I).
+  - Access widths: byte (8 b), halfword (16 b), word (32 b).
+  - Signed / unsigned: loads come in signed and unsigned variants
+    (lb/lbu, lh/lhu; lw is always sign-extended in RV32I).
+  - last_access: records the most recent operation so the UI can
+    highlight the active memory cell in real time.
 
-Instrucciones que usan esta clase: lw, sw (y opcionalmente lb, lh, sb, sh).
+Instructions that use this module: lw, sw (and optionally lb, lh, sb, sh).
 """
 
 

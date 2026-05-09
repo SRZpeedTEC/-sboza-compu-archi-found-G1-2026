@@ -1,12 +1,11 @@
 """
-labels.py — Tabla de etiquetas para el ensamblador RISC-V
+labels.py — Label table for the RISC-V assembler
 
-El parser realiza dos pasadas sobre el código fuente. En la primera
-pasada construye esta tabla que asocia cada nombre de etiqueta con
-su dirección de byte correspondiente en la memoria de instrucciones.
-En la segunda pasada, las instrucciones de salto (beq, bne, jal, jalr)
-consultan esta tabla para convertir el nombre de la etiqueta en el
-offset PC-relativo que necesita la instrucción.
+The parser makes two passes over the source code. In the first pass it
+builds this table, associating each label name with its byte address in
+instruction memory. In the second pass, branch and jump instructions
+(beq, bne, jal, jalr) query this table to convert a label name into the
+PC-relative offset the instruction encoding requires.
 """
 
 
