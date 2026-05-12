@@ -1,35 +1,97 @@
+import re
+
+
 class Parser:
-    def parse_text(self, code: str):
-        instructions = []
-        labels = {}
+    """Limpia codigo ensamblador y detecta etiquetas.
 
-        lines = code.splitlines()
+    Esta clase no crea objetos Instruction. Su salida son strings limpios y una
+    tabla de labels, justo como los consumira InstructionMemory y luego Decoder.
+    """
 
-        for line in lines:
-            line = line.split("#")[0].strip()  # Remover comentarios y espacios en blanco
+    # Patron para validar etiquetas: deben empezar con letra o guion bajo, y luego pueden tener letras, numeros o guiones bajos.
+    _LABEL_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+    # Obtiene una lista de instrucciones limpias (sin comentarios ni etiquetas) y un diccionario de etiquetas con sus direcciones.
+    def parse_text(self, code: str) -> tuple[list[str], dict[str, int]]:
+        if not isinstance(code, str):
+            raise ValueError("El parser espera codigo fuente como texto.")
+
+        instructions: list[str] = []
+        labels: dict[str, int] = {}
+
+        for line_number, original_line in enumerate(code.splitlines(), start=1):
+            
+            # El numero de linea se conserva para mensajes de error legibles en la UI.
+            line = self._remove_comment(original_line).strip()
 
             if not line:
-                continue  # Saltar espacios en blanco
+                continue
 
-            if ":" in line:
-                
-                label_part, rest = line.split(":", 1)
-                label_name = label_part.strip()
+            line = self._extract_labels(line, line_number, labels, instructions)
+            if not line:
+                continue
 
-
-                # La etiqueta apunta a la posición actual del programa
-                labels[label_name] = len(instructions) * 4
-
-                # Puede existir una instrucción después de la etiqueta
-                line = rest.strip()
-
-                if not line:
-                    continue
-            
-            line = " ".join(line.replace(",", " ").split())  # Normalize whitespace
-            line = line.lower()  # Convertir a minúsculas para consistencia
-
-            instructions.append(line)
+            instructions.append(self._normalize_instruction(line))
 
         return instructions, labels
     
+
+    # Funcion auxiliar para remover comentarios. Asume que el caracter '#' inicia un comentario, y todo lo que sigue es ignorado.
+    def _remove_comment(self, line: str) -> str:
+        return line.split("#", 1)[0]
+
+    # Funcion auxiliar para extraer etiquetas al inicio de una linea. Modifica el diccionario de labels con las etiquetas encontradas y sus direcciones (basadas en la cantidad de instrucciones ya procesadas). Devuelve la parte de la linea que queda despues de remover las etiquetas.
+    def _extract_labels(self, line: str, line_number: int, labels: dict[str, int], instructions: list[str]) -> str:
+
+        """Extrae una o mas etiquetas al inicio de una linea.
+
+        Permitimos `label: instruccion` y tambien varias etiquetas antes de una
+        instruccion. Si aparece ':' dentro de una instruccion, se reporta como
+        error para evitar labels ambiguas.
+        """
+        while ":" in line:
+            label_part, rest = line.split(":", 1)
+            label_name = label_part.strip().lower()
+
+            if " " in label_name or "\t" in label_name:
+                raise ValueError(
+                    f"Linea {line_number}: etiqueta invalida antes de ':': {label_part!r}."
+                )
+            
+            self._validate_label(label_name, line_number, labels)
+
+            labels[label_name] = len(instructions) * 4
+            line = rest.strip()
+
+            if not line:
+                return ""
+
+            if ":" in line and not self._looks_like_label_prefix(line):
+                raise ValueError(f"Linea {line_number}: uso invalido de ':' en {line!r}.")
+
+        return line
+    
+
+    def _looks_like_label_prefix(self, line: str) -> bool:
+        possible_label = line.split(":", 1)[0].strip()
+        return bool(self._LABEL_PATTERN.fullmatch(possible_label))
+    
+
+    # Funcion auxiliar para validar que un nombre de etiqueta es valido y no esta duplicado. Lanza ValueError 
+    # con mensajes claros para la UI en caso de error.
+    def _validate_label(self, label_name: str, line_number: int, labels: dict[str, int]) -> None:
+
+        if not label_name:
+            raise ValueError(f"Linea {line_number}: etiqueta vacia.")
+        if not self._LABEL_PATTERN.fullmatch(label_name):
+            raise ValueError(f"Linea {line_number}: etiqueta invalida: {label_name!r}.")
+        if label_name in labels:
+            raise ValueError(f"Linea {line_number}: etiqueta duplicada: {label_name!r}.")
+        
+        
+        
+    # Normaliza la instruccion: convierte a minusculas, reemplaza comas por espacios, y colapsa espacios multiples. Esto facilita el parsing posterior.
+    def _normalize_instruction(self, line: str) -> str:
+        # La normalizacion deja operandos de memoria como 0(x1) intactos.
+        return " ".join(line.replace(",", " ").lower().split())
