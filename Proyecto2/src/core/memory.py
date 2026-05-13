@@ -22,6 +22,7 @@ class Memory:
 
     def dump(self) -> list[int]:
         return list(self._memory)
+    
 
     def _address_to_index(self, address: int) -> int:
         if not isinstance(address, int):

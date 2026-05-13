@@ -18,7 +18,8 @@ class ControlSignals:
     branch: bool = False
     branch_condition: str | None = None  # "beq", "bne" o None
     alu_control: str = "ADD"
+        
 
-    def dump(self) -> dict[str, bool | str | None]:
+    def get_snapshot(self) -> dict[str, bool | str | None]:
         """Entrega una copia serializable para UI, pruebas o snapshots."""
         return asdict(self)

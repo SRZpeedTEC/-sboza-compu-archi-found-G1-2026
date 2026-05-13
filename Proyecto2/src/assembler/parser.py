@@ -41,6 +41,7 @@ class Parser:
     def _remove_comment(self, line: str) -> str:
         return line.split("#", 1)[0]
 
+
     # Funcion auxiliar para extraer etiquetas al inicio de una linea. Modifica el diccionario de labels con las etiquetas encontradas y sus direcciones (basadas en la cantidad de instrucciones ya procesadas). Devuelve la parte de la linea que queda despues de remover las etiquetas.
     def _extract_labels(self, line: str, line_number: int, labels: dict[str, int], instructions: list[str]) -> str:
 
@@ -50,36 +51,28 @@ class Parser:
         instruccion. Si aparece ':' dentro de una instruccion, se reporta como
         error para evitar labels ambiguas.
         """
-        while ":" in line:
+        if ":" in line:
             label_part, rest = line.split(":", 1)
             label_name = label_part.strip().lower()
 
-            if " " in label_name or "\t" in label_name:
-                raise ValueError(
-                    f"Linea {line_number}: etiqueta invalida antes de ':': {label_part!r}."
-                )
-            
+            """ Validamos la etiqueta y actualizamos el diccionario de labels. Si hay error, se lanza ValueError 
+             con mensaje claro para la UI. """
             self._validate_label(label_name, line_number, labels)
 
+
+            """ La direccion de la etiqueta se basa en la cantidad de instrucciones ya procesadas, asumiendo que cada 
+            instruccion ocupa 4 bytes. """
             labels[label_name] = len(instructions) * 4
             line = rest.strip()
 
             if not line:
                 return ""
 
-            if ":" in line and not self._looks_like_label_prefix(line):
-                raise ValueError(f"Linea {line_number}: uso invalido de ':' en {line!r}.")
-
         return line
-    
+     
 
-    def _looks_like_label_prefix(self, line: str) -> bool:
-        possible_label = line.split(":", 1)[0].strip()
-        return bool(self._LABEL_PATTERN.fullmatch(possible_label))
-    
-
-    # Funcion auxiliar para validar que un nombre de etiqueta es valido y no esta duplicado. Lanza ValueError 
-    # con mensajes claros para la UI en caso de error.
+    """ Funcion auxiliar para validar que un nombre de etiqueta es valido y no esta duplicado. Lanza ValueError 
+    con mensajes claros para la UI en caso de error. """
     def _validate_label(self, label_name: str, line_number: int, labels: dict[str, int]) -> None:
 
         if not label_name:
@@ -89,9 +82,9 @@ class Parser:
         if label_name in labels:
             raise ValueError(f"Linea {line_number}: etiqueta duplicada: {label_name!r}.")
         
-        
-        
-    # Normaliza la instruccion: convierte a minusculas, reemplaza comas por espacios, y colapsa espacios multiples. Esto facilita el parsing posterior.
+           
+    """Normaliza la instruccion: convierte a minusculas, reemplaza comas por espacios, y colapsa espacios multiples. 
+    Esto facilita el parsing posterior."""
     def _normalize_instruction(self, line: str) -> str:
         # La normalizacion deja operandos de memoria como 0(x1) intactos.
         return " ".join(line.replace(",", " ").lower().split())

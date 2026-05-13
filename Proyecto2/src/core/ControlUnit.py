@@ -17,15 +17,13 @@ class ControlUnit:
         "xor": "XOR",
     }
 
-    def generate_control_signals(self, instruction: Instruction | None) -> ControlSignals:
+    def generate_control_signals(self, instruction: Instruction) -> ControlSignals:
         """Construye las senales de control para el datapath.
 
         Aqui se modelan decisiones de alto nivel. Por ejemplo, `alu_src="imm"`
         reemplaza la idea de crear una clase Mux para elegir entre registro e
-        inmediato, lo cual mantiene el simulador simple para estudiantes.
+        inmediato, lo cual mantiene el simulador simple.
         """
-        if instruction is None:
-            return ControlSignals(result_src="none")
 
         opcode = instruction.opcode
 

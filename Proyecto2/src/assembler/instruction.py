@@ -15,9 +15,4 @@ class Instruction:
     rs1: str | None = None
     rs2: str | None = None
     imm: int | None = None
-    completeInstruction: str | None = None
-
-    @property
-    def raw(self) -> str | None:
-        """Alias legible para el texto original limpio."""
-        return self.completeInstruction
+    complete_instruction: str | None = None
