@@ -9,7 +9,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.assembler.parser import Parser
-from src.core.Decoder import Decoder
+from src.core.decoder import Decoder
 from src.assembler.instruction import Instruction
 
 def test_parser():
