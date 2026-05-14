@@ -12,6 +12,7 @@ class Memory:
         """Lee una palabra completa desde una direccion alineada."""
         index = self._address_to_index(address)
         return self._memory[index]
+    
 
     def store_word(self, address: int, value: int) -> None:
         """Escribe una palabra completa desde una direccion alineada."""
@@ -20,9 +21,11 @@ class Memory:
         index = self._address_to_index(address)
         self._memory[index] = value
 
-    def dump(self) -> list[int]:
+
+    def get_snapshot(self) -> list[int]:
         return list(self._memory)
     
+
 
     def _address_to_index(self, address: int) -> int:
         if not isinstance(address, int):

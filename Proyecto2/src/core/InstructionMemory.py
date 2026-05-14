@@ -10,8 +10,10 @@ class InstructionMemory:
     def __init__(self) -> None:
         self._instructions: list[str] = []
 
+    """Carga instrucciones ya limpiadas por Parser."""
     def load_program(self, instructions: list[str]) -> None:
-        """Carga instrucciones ya limpiadas por Parser."""
+
+        
         if not isinstance(instructions, list):
             raise ValueError("InstructionMemory.load_program espera una lista de strings.")
         for index, instruction in enumerate(instructions):
@@ -19,17 +21,24 @@ class InstructionMemory:
                 raise ValueError(f"Instruccion invalida en posicion {index}: {instruction!r}.")
         self._instructions = list(instructions)
 
+
+    """Retorna el string crudo asociado al PC."""
     def fetch(self, pc: int) -> str:
-        """Retorna el string crudo asociado al PC."""
+        
         self._validate_pc(pc)
         index = pc // self.WORD_SIZE_BYTES
+
         if index >= len(self._instructions):
             raise IndexError(f"PC fuera del programa: pc={pc}, instrucciones={len(self._instructions)}.")
         return self._instructions[index]
-
-    def dump(self) -> list[str]:
+    
+    
+    """Retorna una copia del estado actual de las instrucciones."""
+    def get_snapshot(self) -> list[str]:
         return list(self._instructions)
+    
 
+    """Valida que el PC sea un entero no negativo y alineado a 4 bytes."""
     def _validate_pc(self, pc: int) -> None:
         if not isinstance(pc, int):
             raise ValueError(f"PC debe ser entero, recibido: {pc!r}.")
