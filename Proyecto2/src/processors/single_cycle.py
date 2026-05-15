@@ -7,6 +7,7 @@ class SingleCycleEngine(ProcessorEngine):
     def __init__(self) -> None:
         super().__init__("Single Cycle")
         self.load_program(self.source_code)
+        self.processor_snapshot = self.get_snapshot()
 
 
     def step(self) -> bool:
@@ -41,7 +42,7 @@ class SingleCycleEngine(ProcessorEngine):
                 self.write_register(instruction.rd, result)
 
             case "lw":
-                
+                self.execute_lw(instruction)
                 
 
             case "sw":
@@ -50,7 +51,12 @@ class SingleCycleEngine(ProcessorEngine):
             case "beq", "bne":
                 self.execute_branch(instruction, control_signal)
 
-        ""
+            
+        self.metrics.count_cycle()
+        self.metrics.count_instruction()
+        self.processor_snapshot = self.get_snapshot()
+
+        
         
 
         
