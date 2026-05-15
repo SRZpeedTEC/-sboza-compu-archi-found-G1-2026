@@ -21,6 +21,9 @@ class InstructionMemory:
                 raise ValueError(f"Instruccion invalida en posicion {index}: {instruction!r}.")
         self._instructions = list(instructions)
 
+    def load_program(self, instructions: list[str]) -> None:
+        self.load_instructions(instructions)
+
 
     """Retorna el string crudo asociado al PC."""
     def fetch(self, pc: int) -> str:

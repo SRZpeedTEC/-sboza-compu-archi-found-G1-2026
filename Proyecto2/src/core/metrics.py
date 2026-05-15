@@ -7,8 +7,8 @@ class Metrics:
 
     cycles: int = 0
     instructions: int = 0
-    cpi: int = 0
-    ipc: int = 0
+    cpi: float = 0
+    ipc: float = 0
     stalls: int = 0
     hazards: int = 0
 
@@ -27,20 +27,18 @@ class Metrics:
     def reset(self) -> None:
         self.cycles = 0
         self.instructions = 0
+        self.cpi = 0
+        self.ipc = 0
         self.stalls = 0
         self.hazards = 0
 
     def update_cpi(self) -> None:
         self.cpi = self.cycles / self.instructions if self.instructions > 0 else 0
-        
-    
+
     def update_ipc(self) -> None:
         self.ipc = self.instructions / self.cycles if self.cycles > 0 else 0
-        
 
-    def get_metrics(self) -> dict[str, int]:
+    def get_metrics(self) -> dict[str, int | float]:
         self.update_cpi()
         self.update_ipc()
         return asdict(self)
-    
-

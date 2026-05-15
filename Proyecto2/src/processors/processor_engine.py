@@ -15,6 +15,7 @@ class ProcessorEngine(ABC):
 
         self.parser = Parser()
         self.alu = ALU()
+        self.control_unit = ControlUnit()
 
         self.register_bank = RegisterBank()
         self.memory = Memory()
@@ -40,7 +41,11 @@ class ProcessorEngine(ABC):
 
 
     def get_snapshot(self) -> ProcessorSnapshot:
-        return ProcessorSnapshot(pc=self.pc, metrics=self.metrics.get_metrics())
+        return ProcessorSnapshot(
+            pc=self.pc,
+            metrics=self.metrics,
+            control_signals=self.control_signals,
+        )
     
 
     """ Funciones de ayuda para ejecutar instrucciones. Estas funciones encapsulan 
@@ -55,15 +60,15 @@ class ProcessorEngine(ABC):
 
 
     def execute_alu(self, operand1: int, operand2: int, control_signal: str) -> int:
-        return self.alu.execute(operand1, operand2, control_signal)
+        return self.alu.execute(control_signal, operand1, operand2)
     
 
     def load_from_memory(self, address: int) -> int:
-        return self.memory.read(address)
+        return self.memory.load_word(address)
     
 
     def write_in_memory(self, address: int, value: int) -> None:
-        self.memory.write(address, value)
+        self.memory.store_word(address, value)
 
 
     """ Funciones genericas para ejecutar instrucciones en cualquier procesador """
@@ -73,7 +78,7 @@ class ProcessorEngine(ABC):
         rs2 = self.get_register(instruction.rs2)
         condition_met = False
 
-        result = self.execute_alu(rs1, rs2, control_signal.alu_src)
+        result = self.execute_alu(rs1, rs2, control_signal.alu_control)
 
         match control_signal.branch_condition:
             case "beq":
@@ -132,11 +137,6 @@ class ProcessorEngine(ABC):
     def step(self):
         raise NotImplementedError
     
-    @abstractmethod
-
-
-
     def run(self):
         while not self.is_program_finished():
             self.step()
-

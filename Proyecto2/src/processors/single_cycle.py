@@ -1,11 +1,10 @@
-from src.processors.processor_engine import ProcessorEngine, ProcessorSnapshot
-i
+from src.processors.processor_engine import ProcessorEngine
 
 class SingleCycleEngine(ProcessorEngine):
     """Punto de extension para ejecutar una instruccion completa por ciclo."""
 
     def __init__(self) -> None:
-        super().__init__("Single Cycle")
+        super().__init__()
         self.load_program(self.source_code)
         self.processor_snapshot = self.get_snapshot()
 
@@ -21,52 +20,28 @@ class SingleCycleEngine(ProcessorEngine):
         # principalmente util para frontend
         control_signal = self.control_unit.generate_control_signals(
             instruction)
+        self.control_signals = control_signal
 
         
         match instruction.opcode:
-            case "add", "sub", "and", "or":
-                
-                rs1 = self.get_register(instruction.rs1)
-                rs2 = self.get_register(instruction.rs2)
-                result = self.execute_alu(rs1, rs2, control_signal.alu_control)
-
-                self.write_register(instruction.rd, result)
+            case "add" | "sub" | "and" | "or" | "xor":
+                self.execute_r_type(instruction, control_signal)
             
             case "addi":
                 self.execute_addi(instruction, control_signal)
-
-                rs1 = self.get_register(instruction.rs1)
-                imm = instruction.imm
-                result = self.execute_alu(rs1, imm, control_signal.alu_control)
-
-                self.write_register(instruction.rd, result)
 
             case "lw":
                 self.execute_lw(instruction)
                 
 
             case "sw":
-                self.execute_sw(instruction, control_signal)
+                self.execute_sw(instruction)
 
-            case "beq", "bne":
+            case "beq" | "bne":
                 self.execute_branch(instruction, control_signal)
 
             
         self.metrics.count_cycle()
         self.metrics.count_instruction()
         self.processor_snapshot = self.get_snapshot()
-
-        
-        
-
-        
-
-    
-
-
-    
-
-        
-
-
-    
+        return True

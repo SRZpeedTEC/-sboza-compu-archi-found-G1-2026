@@ -19,7 +19,9 @@ class RegisterBank:
             return 0
         return self._registers[index]
 
-   
+    def read(self, reg: str) -> int:
+        return self.read_register(reg)
+
 
     def write_register(self, reg: str, value: int) -> None:
         """Escribe un registro; x0 ignora escrituras como en RISC-V."""
@@ -30,6 +32,9 @@ class RegisterBank:
             return
         
         self._registers[index] = value
+
+    def write(self, reg: str, value: int) -> None:
+        self.write_register(reg, value)
 
 
 

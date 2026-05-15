@@ -28,7 +28,7 @@ class ProcessorSnapshot:
         return {
             'pc': self.pc,
             'metrics': self.metrics.get_metrics(),
-            'control_signals': self.control_signals.get_signals()
+            'control_signals': self.control_signals.get_snapshot()
         }
     
 
