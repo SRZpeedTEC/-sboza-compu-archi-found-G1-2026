@@ -11,7 +11,7 @@ class InstructionMemory:
         self._instructions: list[str] = []
 
     """Carga instrucciones ya limpiadas por Parser."""
-    def load_program(self, instructions: list[str]) -> None:
+    def load_instructions(self, instructions: list[str]) -> None:
 
         
         if not isinstance(instructions, list):

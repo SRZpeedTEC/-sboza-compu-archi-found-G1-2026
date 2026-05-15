@@ -12,6 +12,7 @@ class ALU:
         "AND": operator.and_,
         "OR": operator.or_,
         "XOR": operator.xor,
+        
     }
 
     def execute(self, operation: str, a: int, b: int) -> int:
