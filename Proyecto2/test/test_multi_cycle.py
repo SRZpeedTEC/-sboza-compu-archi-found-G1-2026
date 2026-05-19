@@ -34,9 +34,6 @@ _register_decoder()
 from src.processors.multi_cycle import MultiCycleEngine, Stage  # noqa: E402
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def make_engine(source_code: str) -> MultiCycleEngine:
     engine = MultiCycleEngine()
@@ -56,10 +53,6 @@ def run_full(engine: MultiCycleEngine, max_steps: int = 500) -> None:
             break
         steps += 1
 
-
-# ---------------------------------------------------------------------------
-# Transiciones de etapa
-# ---------------------------------------------------------------------------
 
 class TestStageTransitions(unittest.TestCase):
 
@@ -112,9 +105,7 @@ class TestStageTransitions(unittest.TestCase):
             self.assertEqual(engine._stage, expected_stage)
 
 
-# ---------------------------------------------------------------------------
-# Conteo de ciclos por instruccion
-# ---------------------------------------------------------------------------
+
 
 class TestCyclesPerInstruction(unittest.TestCase):
 
@@ -172,9 +163,7 @@ class TestCyclesPerInstruction(unittest.TestCase):
         self.assertEqual(engine.metrics.cycles, 3 + 4)
 
 
-# ---------------------------------------------------------------------------
-# Correctitud de resultados en registros
-# ---------------------------------------------------------------------------
+
 
 class TestRegisterResults(unittest.TestCase):
 
@@ -219,9 +208,7 @@ class TestRegisterResults(unittest.TestCase):
         self.assertEqual(engine.register_bank.read("x2"), 7)
 
 
-# ---------------------------------------------------------------------------
-# Correctitud de resultados en memoria
-# ---------------------------------------------------------------------------
+
 
 class TestMemoryResults(unittest.TestCase):
 
@@ -241,9 +228,7 @@ class TestMemoryResults(unittest.TestCase):
         self.assertEqual(engine.memory.load_word(8), 99)
 
 
-# ---------------------------------------------------------------------------
-# Ramas (BEQ / BNE)
-# ---------------------------------------------------------------------------
+
 
 class TestBranches(unittest.TestCase):
 
@@ -275,9 +260,7 @@ class TestBranches(unittest.TestCase):
         self.assertEqual(engine.register_bank.read("x1"), 42)  # no skipped
 
 
-# ---------------------------------------------------------------------------
-# Metricas
-# ---------------------------------------------------------------------------
+
 
 class TestMetrics(unittest.TestCase):
 
@@ -314,9 +297,6 @@ class TestMetrics(unittest.TestCase):
         self.assertFalse(engine.step())
 
 
-# ---------------------------------------------------------------------------
-# Snapshot
-# ---------------------------------------------------------------------------
 
 class TestSnapshot(unittest.TestCase):
 
@@ -360,9 +340,7 @@ class TestSnapshot(unittest.TestCase):
         self.assertIn("control_signals", snap)
 
 
-# ---------------------------------------------------------------------------
-# Programa completo (referencia)
-# ---------------------------------------------------------------------------
+
 
 class TestFullProgram(unittest.TestCase):
 

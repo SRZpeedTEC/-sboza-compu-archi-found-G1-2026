@@ -1,8 +1,15 @@
-"""Espacio reservado para la implementacion de pipeline.
+from src.pipeline.pipeline_registers import IF_ID, ID_EX, EX_MEM, MEM_WB
+from src.pipeline.stages import (
+    stage_fetch,
+    stage_decode,
+    stage_execute,
+    stage_memory,
+    stage_writeback,
+)
+from src.pipeline.hazard_detection import detect_data_hazard
 
-Por ahora el proyecto solo necesita dejar claro donde viviran los registros de
-pipeline, deteccion de hazards y forwarding. La logica se agregara cuando se
-implemente el motor correspondiente.
-"""
-
-__all__: list[str] = []
+__all__ = [
+    "IF_ID", "ID_EX", "EX_MEM", "MEM_WB",
+    "stage_fetch", "stage_decode", "stage_execute", "stage_memory", "stage_writeback",
+    "detect_data_hazard",
+]
