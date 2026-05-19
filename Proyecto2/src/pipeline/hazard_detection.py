@@ -58,3 +58,29 @@ def detect_data_hazard(
         return True
 
     return False
+
+
+def detect_load_use_hazard(if_id: IF_ID, id_ex: ID_EX, decoder) -> bool:
+    """Retorna True cuando forwarding no puede resolver un RAW inmediato.
+
+    En un load-use, la instruccion en EX es un lw y la instruccion en ID necesita
+    su rd. El dato de memoria aun no esta listo para la etapa EX del consumidor,
+    por eso se requiere una burbuja.
+    """
+    if if_id.instruction is None:
+        return False
+    if id_ex.instruction is None or id_ex.control is None:
+        return False
+    if not id_ex.control.mem_read or id_ex.rd in (None, "x0"):
+        return False
+
+    try:
+        instr = decoder.decode(if_id.instruction)
+    except ValueError:
+        return False
+
+    src_regs = {
+        reg for reg in (instr.rs1, instr.rs2)
+        if reg is not None and reg != "x0"
+    }
+    return id_ex.rd in src_regs
