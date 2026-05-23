@@ -8,6 +8,7 @@ instruccion actualmente en ID.
 """
 
 from src.pipeline.pipeline_registers import IF_ID, ID_EX, EX_MEM
+from src.assembler import Instruction
 
 
 def detect_data_hazard(
@@ -16,28 +17,29 @@ def detect_data_hazard(
     ex_mem: EX_MEM,
     decoder,
 ) -> bool:
-    """Retorna True si hay un hazard RAW que requiere insertar un stall.
 
-    Condicion: la instruccion en IF_ID lee un registro (rs1 o rs2) que sera
-    escrito por la instruccion en ID_EX o EX_MEM, las cuales aun no han
-    completado WB"""
     if if_id.instruction is None:
         return False
 
-    # Extraer registros fuente de la instruccion que esta en ID
-    try:
-        instr = decoder.decode(if_id.instruction)
-    except ValueError:
-        return False
+    consumer = if_id.instruction
 
+    # Si viene como string se decodifica
+    if isinstance(consumer, str):
+        try:
+            consumer = decoder.decode(consumer)
+        except:
+            return False
+
+    # REGISTROS FUENTE
     src_regs = {
-        r for r in (instr.rs1, instr.rs2)
-        if r is not None and r != "x0"
+        reg for reg in (consumer.rs1, consumer.rs2)
+        if reg is not None and reg != "x0"
     }
+
     if not src_regs:
         return False
 
-    # Instruccion en EX todavia no ha escrito → hazard si coincide rd
+    # HAZARD CON EX
     if (
         id_ex.control is not None
         and id_ex.control.reg_write
@@ -45,9 +47,10 @@ def detect_data_hazard(
         and id_ex.rd != "x0"
         and id_ex.rd in src_regs
     ):
+        print("HAZARD DETECTED WITH EX:", id_ex.rd)
         return True
 
-    # Instruccion en MEM todavia no ha escrito → hazard si coincide rd
+    # HAZARD CON MEM
     if (
         ex_mem.control is not None
         and ex_mem.control.reg_write
@@ -55,32 +58,45 @@ def detect_data_hazard(
         and ex_mem.rd != "x0"
         and ex_mem.rd in src_regs
     ):
+        print("HAZARD DETECTED WITH MEM:", ex_mem.rd)
         return True
 
     return False
 
 
-def detect_load_use_hazard(if_id: IF_ID, id_ex: ID_EX, decoder) -> bool:
-    """Retorna True cuando forwarding no puede resolver un RAW inmediato.
+def detect_load_use_hazard(if_id, id_ex, decoder) -> bool:
 
-    En un load-use, la instruccion en EX es un lw y la instruccion en ID necesita
-    su rd. El dato de memoria aun no esta listo para la etapa EX del consumidor,
-    por eso se requiere una burbuja.
-    """
+    # Nada en IF/ID
     if if_id.instruction is None:
         return False
-    if id_ex.instruction is None or id_ex.control is None:
-        return False
-    if not id_ex.control.mem_read or id_ex.rd in (None, "x0"):
+
+    # Nada en ID/EX
+    if id_ex.instruction is None:
         return False
 
-    try:
-        instr = decoder.decode(if_id.instruction)
-    except ValueError:
+    # Sin señales de control
+    if id_ex.control is None:
         return False
 
-    src_regs = {
-        reg for reg in (instr.rs1, instr.rs2)
-        if reg is not None and reg != "x0"
-    }
-    return id_ex.rd in src_regs
+    # Debe ser un load
+    if not id_ex.control.mem_read:
+        return False
+
+    # Registro destino del lw
+    producer_rd = id_ex.rd
+
+    if producer_rd is None or producer_rd == "x0":
+        return False
+
+    consumer = if_id.instruction
+
+    rs1 = getattr(consumer, "rs1", None)
+    rs2 = getattr(consumer, "rs2", None)
+
+    if rs1 == producer_rd:
+        return True
+
+    if rs2 == producer_rd:
+        return True
+
+    return False

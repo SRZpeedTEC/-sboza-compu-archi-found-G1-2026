@@ -15,65 +15,6 @@ from src.pipeline.stages import (
 )
 from src.pipeline.hazard_detection import detect_data_hazard
 
-
-class PipelineStallSnapshot(ProcessorSnapshot):
-    """Snapshot del pipeline con stall"""
-
-    def __init__(
-        self,
-        pc: int,
-        metrics,
-        control_signals: ControlSignals,
-        if_id: IF_ID,
-        id_ex: ID_EX,
-        ex_mem: EX_MEM,
-        mem_wb: MEM_WB,
-        stalled: bool,
-        flushed: bool,
-    ) -> None:
-        super().__init__(pc=pc, metrics=metrics, control_signals=control_signals)
-        self.if_id = if_id
-        self.id_ex = id_ex
-        self.ex_mem = ex_mem
-        self.mem_wb = mem_wb
-        self.stalled = stalled
-        self.flushed = flushed
-
-    def get_snapshot(self) -> dict:
-        base = super().get_snapshot()
-
-        def _reg_name(reg) -> str | None:
-            return reg.instruction.opcode if reg.instruction else None
-
-        base["if_id"] = {
-            "instruction": self.if_id.instruction,
-            "pc": self.if_id.pc,
-        }
-        base["id_ex"] = {
-            "opcode": _reg_name(self.id_ex),
-            "rd": self.id_ex.rd,
-            "rs1": self.id_ex.rs1,
-            "rs2": self.id_ex.rs2,
-            "a": self.id_ex.a,
-            "b": self.id_ex.b,
-            "imm": self.id_ex.imm,
-        }
-        base["ex_mem"] = {
-            "opcode": _reg_name(self.ex_mem),
-            "rd": self.ex_mem.rd,
-            "alu_result": self.ex_mem.alu_result,
-        }
-        base["mem_wb"] = {
-            "opcode": _reg_name(self.mem_wb),
-            "rd": self.mem_wb.rd,
-            "alu_result": self.mem_wb.alu_result,
-            "mem_data": self.mem_wb.mem_data,
-        }
-        base["stalled"] = self.stalled
-        base["flushed"] = self.flushed
-        return base
-
-
 class PipelineStallEngine(ProcessorEngine):
     """Cada step() representa un ciclo de reloj completo, todas las etapas avanzan en paralelo"""
 
@@ -137,6 +78,13 @@ class PipelineStallEngine(ProcessorEngine):
             self.pc = branch_target
             self._pc_beyond_end = False
             self.metrics.count_cycle()
+            self.record_pipeline_state(
+                "-",
+                IF_ID(),
+                ID_EX(),
+                next_ex_mem,
+                next_mem_wb
+            )
             self._if_id = next_if_id
             self._id_ex = next_id_ex
             self._ex_mem = next_ex_mem
@@ -148,15 +96,26 @@ class PipelineStallEngine(ProcessorEngine):
         # Comparar contra self._id_ex (en EX ahora) y self._ex_mem (en MEM ahora);
         # ambos no han escrito todavia. MEM_WB ya escribio en WB al inicio del ciclo.
         stall = detect_data_hazard(
-            self._if_id, self._id_ex, self._ex_mem, self.decoder
+            self._if_id,
+            self._id_ex,
+            self._ex_mem,
+            self.decoder
         )
 
         if stall:
             self._stalled = True
             self.metrics.count_stall()
             self.metrics.count_cycle()
+            self.record_pipeline_state(
+                self._if_id.instruction if self._if_id.instruction else "-",
+                self._if_id,
+                ID_EX(),   # burbuja
+                next_ex_mem,
+                next_mem_wb
+            )
             # Congela PC e IF_ID; inserta burbuja en ID_EX
-            self._id_ex = ID_EX()      # burbuja
+            bubble = ID_EX()
+            self._id_ex = bubble    # burbuja
             self._ex_mem = next_ex_mem
             self._mem_wb = next_mem_wb
             self.processor_snapshot = self.get_snapshot()
@@ -177,6 +136,13 @@ class PipelineStallEngine(ProcessorEngine):
             self._pc_beyond_end = True
 
         self.metrics.count_cycle()
+        self.record_pipeline_state(
+            next_if_id.instruction if next_if_id.instruction else "-",
+            self._if_id,
+            self._id_ex,
+            self._ex_mem,
+            self._mem_wb
+        )
         self._if_id = next_if_id
         self._id_ex = next_id_ex
         self._ex_mem = next_ex_mem
@@ -188,15 +154,39 @@ class PipelineStallEngine(ProcessorEngine):
         while self.step():
             pass
 
-    def get_snapshot(self) -> PipelineStallSnapshot:
-        return PipelineStallSnapshot(
+    def get_snapshot(self) -> ProcessorSnapshot:
+
+        registers = []
+
+        for i in range(32):
+
+            registers.append(
+                self.register_bank.read(f"x{i}")
+            )
+
+        memory = {}
+
+        for index, value in enumerate(self.memory._memory):
+
+            real_address = index * 4
+
+            memory[real_address] = value
+
+        return ProcessorSnapshot(
             pc=self.pc,
             metrics=self.metrics,
             control_signals=self.control_signals,
+
+            registers=registers,
+            memory=memory,
+
+            pipeline=self.pipeline_history,
+
             if_id=self._if_id,
             id_ex=self._id_ex,
             ex_mem=self._ex_mem,
             mem_wb=self._mem_wb,
+
             stalled=self._stalled,
-            flushed=self._flushed,
+            flushed=self._flushed
         )

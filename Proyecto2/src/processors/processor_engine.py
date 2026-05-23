@@ -20,6 +20,7 @@ class ProcessorEngine(ABC):
         self.register_bank = RegisterBank()
         self.memory = Memory()
         self.instruction_memory = InstructionMemory()
+        self.pipeline_history = []
 
         # Temporary variable to hold the source code for potential debugging or visualization purposes
         self.source_code = Path("programs/test.asm").read_text(encoding="utf-8")
@@ -41,10 +42,30 @@ class ProcessorEngine(ABC):
 
 
     def get_snapshot(self) -> ProcessorSnapshot:
+
+        registers = []
+
+        for i in range(32):
+
+            registers.append(
+                self.register_bank.read(f"x{i}")
+            )
+
+        memory = {}
+
+        for index, value in enumerate(self.memory._memory):
+
+            real_address = index * 4
+
+            memory[real_address] = value
+
         return ProcessorSnapshot(
             pc=self.pc,
             metrics=self.metrics,
             control_signals=self.control_signals,
+            registers=registers,
+            memory=memory,
+            pipeline=self.pipeline_history
         )
     
 
@@ -70,11 +91,16 @@ class ProcessorEngine(ABC):
     def write_in_memory(self, address: int, value: int) -> None:
         self.memory.store_word(address, value)
 
+    def next_pc(self) -> None:
+        self.pc += 4
+
 
     """ Funciones genericas para ejecutar instrucciones en cualquier procesador """
 
     def execute_branch(self, instruction: Instruction, control_signal : ControlSignals) -> None:
         rs1 = self.get_register(instruction.rs1)
+        print("READING:", instruction.rs1)
+        print("VALUE:", rs1)
         rs2 = self.get_register(instruction.rs2)
         condition_met = False
 
@@ -121,16 +147,61 @@ class ProcessorEngine(ABC):
 
 
     def execute_addi(self, instruction: Instruction, control_signal: ControlSignals) -> None:
+
+        print("EXECUTING ADDI")
+
+        print("RD:", instruction.rd)
+        print("RS1:", instruction.rs1)
+        print("IMM:", instruction.imm)
+
         rs1 = self.get_register(instruction.rs1)
+
+        print("RS1 VALUE:", rs1)
+
         imm = instruction.imm
-        result = self.execute_alu(rs1, imm, control_signal.alu_control)
-        self.write_register(instruction.rd, result)
+
+        result = self.execute_alu(
+            rs1,
+            imm,
+            control_signal.alu_control
+        )
+
+        print("RESULT:", result)
+
+        self.write_register(
+            instruction.rd,
+            result
+        )
+
+        print(
+            "REGISTER AFTER WRITE:",
+            self.get_register(instruction.rd)
+        )
+
         self.next_pc()
 
+        print("PC:", self.pc)
 
-    def next_pc(self) -> None:
-        self.pc += 4
+    def record_pipeline_state(
+        self,
+        fetched_instruction,
+        if_id,
+        id_ex,
+        ex_mem,
+        mem_wb
+    ):
 
+        row = [
+            fetched_instruction,
+            if_id,
+            id_ex,
+            ex_mem,
+            mem_wb,
+        ]
+
+        print("PIPELINE ROW:", row)
+
+        self.pipeline_history.append(row)
 
     @abstractmethod
 

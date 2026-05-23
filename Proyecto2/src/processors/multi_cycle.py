@@ -19,40 +19,6 @@ class Stage(Enum):
 #   BEQ / BNE           → IF → ID → EX          = 3 ciclos
 
 
-class MultiCycleSnapshot(ProcessorSnapshot):
-    #Clase de snapshot para las metricas del procesador multiciclo, con campos adicionales para las etapas y registros intermedios.
-
-    def __init__(
-        self,
-        pc: int,
-        metrics,
-        control_signals: ControlSignals,
-        stage: str,
-        ir: str | None,
-        a: int,
-        b: int,
-        alu_out: int,
-        mdr: int,
-    ) -> None:
-        super().__init__(pc=pc, metrics=metrics, control_signals=control_signals)
-        self.stage = stage
-        self.ir = ir
-        self.a = a
-        self.b = b
-        self.alu_out = alu_out
-        self.mdr = mdr
-
-    def get_snapshot(self) -> dict:
-        base = super().get_snapshot()
-        base["stage"] = self.stage
-        base["ir"] = self.ir
-        base["a"] = self.a
-        base["b"] = self.b
-        base["alu_out"] = self.alu_out
-        base["mdr"] = self.mdr
-        return base
-
-
 class MultiCycleEngine(ProcessorEngine):
     """Procesador multiciclo: cada step() avanza exactamente un ciclo.
 
@@ -62,7 +28,6 @@ class MultiCycleEngine(ProcessorEngine):
 
     def __init__(self) -> None:
         super().__init__()
-        self.load_program(self.source_code)
         self._init_stage_registers()
         self.processor_snapshot = self.get_snapshot()
 
@@ -107,17 +72,48 @@ class MultiCycleEngine(ProcessorEngine):
             pass
 
     #recuperar datos para el snapshot
-    def get_snapshot(self) -> MultiCycleSnapshot:
-        return MultiCycleSnapshot(
+    def get_snapshot(self):
+
+        registers = []
+
+        for i in range(32):
+            registers.append(
+                self.register_bank.read(f"x{i}")
+            )
+
+        memory = {}
+
+        for index, value in enumerate(self.memory._memory):
+
+            real_address = index * 4
+
+            memory[real_address] = value
+
+        return ProcessorSnapshot(
+
             pc=self.pc,
+
             metrics=self.metrics,
+
             control_signals=self.control_signals,
-            stage=getattr(self, "_stage", Stage.FETCH).name,
-            ir=getattr(self, "_ir", None),
-            a=getattr(self, "_a", 0),
-            b=getattr(self, "_b", 0),
-            alu_out=getattr(self, "_alu_out", 0),
-            mdr=getattr(self, "_mdr", 0),
+
+            registers=registers,
+
+            memory=memory,
+
+            pipeline=self.pipeline_history,
+
+            stage=self._stage.name,
+
+            ir=str(self._ir) if self._ir else None,
+
+            a=self._a,
+
+            b=self._b,
+
+            alu_out=self._alu_out,
+
+            mdr=self._mdr
         )
 
 

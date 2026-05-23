@@ -22,72 +22,6 @@ from src.pipeline.stages import (
 from src.processors.processor_engine import ProcessorEngine
 from src.processors.processor_snapshot import ProcessorSnapshot
 
-
-class PipelineForwardingSnapshot(ProcessorSnapshot):
-    """Snapshot del pipeline con forwarding."""
-
-    def __init__(
-        self,
-        pc: int,
-        metrics,
-        control_signals: ControlSignals,
-        if_id: IF_ID,
-        id_ex: ID_EX,
-        ex_mem: EX_MEM,
-        mem_wb: MEM_WB,
-        stalled: bool,
-        flushed: bool,
-        forward_a: str,
-        forward_b: str,
-    ) -> None:
-        super().__init__(pc=pc, metrics=metrics, control_signals=control_signals)
-        self.if_id = if_id
-        self.id_ex = id_ex
-        self.ex_mem = ex_mem
-        self.mem_wb = mem_wb
-        self.stalled = stalled
-        self.flushed = flushed
-        self.forward_a = forward_a
-        self.forward_b = forward_b
-
-    def get_snapshot(self) -> dict:
-        base = super().get_snapshot()
-
-        def _opcode(reg) -> str | None:
-            return reg.instruction.opcode if reg.instruction else None
-
-        base["if_id"] = {
-            "instruction": self.if_id.instruction,
-            "pc": self.if_id.pc,
-        }
-        base["id_ex"] = {
-            "opcode": _opcode(self.id_ex),
-            "rd": self.id_ex.rd,
-            "rs1": self.id_ex.rs1,
-            "rs2": self.id_ex.rs2,
-            "a": self.id_ex.a,
-            "b": self.id_ex.b,
-            "imm": self.id_ex.imm,
-        }
-        base["ex_mem"] = {
-            "opcode": _opcode(self.ex_mem),
-            "rd": self.ex_mem.rd,
-            "alu_result": self.ex_mem.alu_result,
-            "b": self.ex_mem.b,
-        }
-        base["mem_wb"] = {
-            "opcode": _opcode(self.mem_wb),
-            "rd": self.mem_wb.rd,
-            "alu_result": self.mem_wb.alu_result,
-            "mem_data": self.mem_wb.mem_data,
-        }
-        base["stalled"] = self.stalled
-        base["flushed"] = self.flushed
-        base["forward_a"] = self.forward_a
-        base["forward_b"] = self.forward_b
-        return base
-
-
 class PipelineForwardingEngine(ProcessorEngine):
     """Cada step() representa un ciclo completo con forwarding en EX."""
 
@@ -152,6 +86,13 @@ class PipelineForwardingEngine(ProcessorEngine):
             self._id_ex = ID_EX()
             self._ex_mem = next_ex_mem
             self._mem_wb = next_mem_wb
+            self.record_pipeline_state(
+                fetched_instruction,
+                next_if_id,
+                next_id_ex,
+                next_ex_mem,
+                next_mem_wb
+            )
             self.processor_snapshot = self.get_snapshot()
             return True
 
@@ -162,6 +103,13 @@ class PipelineForwardingEngine(ProcessorEngine):
             self._id_ex = ID_EX()
             self._ex_mem = next_ex_mem
             self._mem_wb = next_mem_wb
+            self.record_pipeline_state(
+                fetched_instruction,
+                next_if_id,
+                next_id_ex,
+                next_ex_mem,
+                next_mem_wb
+            )
             self.processor_snapshot = self.get_snapshot()
             return True
 
@@ -169,37 +117,83 @@ class PipelineForwardingEngine(ProcessorEngine):
             self._if_id, self.register_bank, self.decoder, self.control_unit
         )
 
+        fetched_instruction = None
+
         try:
-            self.instruction_memory.fetch(self.pc)
-            next_if_id = stage_fetch(self.pc, self.instruction_memory)
+            fetched_instruction = self.instruction_memory.fetch(self.pc)
+
+            next_if_id = stage_fetch(
+                self.pc,
+                self.instruction_memory
+            )
+
             self.pc += 4
+
         except IndexError:
+
             next_if_id = IF_ID()
             self._pc_beyond_end = True
 
         self.metrics.count_cycle()
+
+        # Guardar estado ACTUAL antes del avance
+        self.record_pipeline_state(
+            fetched_instruction,
+            self._if_id,
+            self._id_ex,
+            self._ex_mem,
+            self._mem_wb
+        )
+
+        # Ahora sí avanzar pipeline
         self._if_id = next_if_id
         self._id_ex = next_id_ex
         self._ex_mem = next_ex_mem
         self._mem_wb = next_mem_wb
         self.processor_snapshot = self.get_snapshot()
+
         return True
 
     def run(self) -> None:
         while self.step():
             pass
 
-    def get_snapshot(self) -> PipelineForwardingSnapshot:
-        return PipelineForwardingSnapshot(
+    def get_snapshot(self) -> ProcessorSnapshot:
+
+        registers = []
+
+        for i in range(32):
+
+            registers.append(
+                self.register_bank.read(f"x{i}")
+            )
+
+        memory = {}
+
+        for index, value in enumerate(self.memory._memory):
+
+            real_address = index * 4
+
+            memory[real_address] = value
+
+        return ProcessorSnapshot(
             pc=self.pc,
             metrics=self.metrics,
             control_signals=self.control_signals,
+
+            registers=registers,
+            memory=memory,
+
+            pipeline=self.pipeline_history,
+
             if_id=self._if_id,
             id_ex=self._id_ex,
             ex_mem=self._ex_mem,
             mem_wb=self._mem_wb,
+
             stalled=self._stalled,
             flushed=self._flushed,
+
             forward_a=self._forward_a,
-            forward_b=self._forward_b,
+            forward_b=self._forward_b
         )

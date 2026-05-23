@@ -1,4 +1,4 @@
-from src.assembler import ControlSignals, Instruction
+from src.assembler import ControlSignals
 from src.core.metrics import Metrics
 
 
@@ -9,27 +9,117 @@ from src.core.metrics import Metrics
 
 class ProcessorSnapshot:
 
-    def __init__(self, pc: int, metrics: Metrics, control_signals: ControlSignals) -> None:
+    def __init__(
+        self,
+        pc: int,
+        metrics: Metrics,
+        control_signals: ControlSignals,
+        registers,
+        memory,
+        pipeline=None,
+
+        # MULTICYCLE
+        stage=None,
+        ir=None,
+        a=0,
+        b=0,
+        alu_out=0,
+        mdr=0,
+
+        # PIPELINE FORWARDING
+        if_id=None,
+        id_ex=None,
+        ex_mem=None,
+        mem_wb=None,
+
+        stalled=False,
+        flushed=False,
+
+        forward_a="ID/EX",
+        forward_b="ID/EX",
+
+    ) -> None:
+
         self.pc = pc
         self.metrics = metrics
         self.control_signals = control_signals
 
-    def update_pc(self, new_pc: int):
-        self.pc = new_pc
+        self.registers = registers.copy()
+        self.memory = memory.copy()
 
-    def update_metrics(self, new_metrics: Metrics):
-        self.metrics = new_metrics
+        self.pipeline = pipeline or []
 
-    def update_control_signals(self, new_control_signals: ControlSignals):
-        self.control_signals = new_control_signals
+        # MULTICICLO
+        self.stage = stage
+        self.ir = ir
+        self.a = a
+        self.b = b
+        self.alu_out = alu_out
+        self.mdr = mdr
 
-    
+        # PIPELINE FORWARDING
+
+        self.if_id = if_id
+        self.id_ex = id_ex
+        self.ex_mem = ex_mem
+        self.mem_wb = mem_wb
+
+        self.stalled = stalled
+        self.flushed = flushed
+
+        self.forward_a = forward_a
+        self.forward_b = forward_b
+
     def get_snapshot(self):
-        return {
-            'pc': self.pc,
-            'metrics': self.metrics.get_metrics(),
-            'control_signals': self.control_signals.get_snapshot()
-        }
-    
 
-        
+        return {
+
+            "pc": self.pc,
+
+            "metrics":
+            self.metrics.get_metrics(),
+
+            # MULTICICLO
+            "stage":
+            self.stage,
+
+            "ir":
+            self.ir,
+
+            "a":
+            self.a,
+
+            "b":
+            self.b,
+
+            "alu_out":
+            self.alu_out,
+
+            "mdr":
+            self.mdr,
+
+            # PIPELINE
+            "if_id":
+            self.if_id,
+
+            "id_ex":
+            self.id_ex,
+
+            "ex_mem":
+            self.ex_mem,
+
+            "mem_wb":
+            self.mem_wb,
+
+            "stalled":
+            self.stalled,
+
+            "flushed":
+            self.flushed,
+
+            "forward_a":
+            self.forward_a,
+
+            "forward_b":
+            self.forward_b
+        }

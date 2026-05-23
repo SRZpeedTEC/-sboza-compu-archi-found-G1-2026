@@ -39,7 +39,9 @@ class Decoder:
         
         if not isinstance(instruction_line, str) or not instruction_line.strip():
             raise ValueError("No se puede decodificar una instruccion vacia.")
-
+        
+        instruction_line = instruction_line.replace(",", " ")
+        
         parts = instruction_line.split()
         opcode = parts[0]
 
