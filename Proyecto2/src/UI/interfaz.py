@@ -8,6 +8,14 @@ from src.processors import (
     PipelineForwardingEngine,
     PipelineStallEngine
 )
+from PySide6.QtGui import (
+    QFont,
+    QColor,
+    QPainter,
+    QPen,
+    QBrush
+)
+from PySide6.QtCore import QRect
 
 # ESTILO GENERAL
 STYLE = """
@@ -256,6 +264,164 @@ class MetricCard(QFrame):
 
     def set_value(self, value):
         self.value_label.setText(str(value))
+    
+# DATAPATH VISUAL
+class DatapathWidget(QWidget):
+
+    def __init__(self, accent, scale=1.0):
+        super().__init__()
+
+        self.accent = accent
+        self.scale = scale
+
+        self.active_blocks = set()
+
+        self.setMinimumHeight(320)
+
+        self.setStyleSheet("""
+            background: transparent;
+            border: none;
+        """)
+
+    # ACTIVAR BLOQUES
+    def set_active_blocks(self, blocks):
+
+        self.active_blocks = set(blocks)
+
+        self.update()
+
+    # DIBUJAR
+    def paintEvent(self, event):
+
+        painter = QPainter(self)
+
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        painter.scale(self.scale, self.scale)
+
+        # DEFINICION DE BLOQUES
+        blocks = {
+
+            "pc":
+            QRect(30, 120, 90, 55),
+
+            "imem":
+            QRect(150, 95, 120, 100),
+
+            "control":
+            QRect(320, 40, 120, 70),
+
+            "registers":
+            QRect(320, 140, 140, 90),
+
+            "alu":
+            QRect(520, 140, 120, 90),
+
+            "dmem":
+            QRect(710, 140, 120, 90),
+
+            "wb":
+            QRect(900, 140, 120, 90)
+        }
+
+        # CONEXIONES
+        line_pen = QPen(QColor("#cfd8ff"), 4)
+
+        painter.setPen(line_pen)
+
+        # PC -> IMEM
+        painter.drawLine(120, 148, 150, 148)
+
+        # IMEM -> REG
+        painter.drawLine(270, 148, 320, 185)
+
+        # REG -> ALU
+        painter.drawLine(460, 185, 520, 185)
+
+        # ALU -> MEM
+        painter.drawLine(640, 185, 710, 185)
+
+        # MEM -> WB
+        painter.drawLine(830, 185, 900, 185)
+
+        # IMEM -> CONTROL
+        painter.drawLine(270, 120, 320, 75)
+
+        # CONTROL -> REGISTERS
+        painter.drawLine(380, 110, 380, 140)
+
+        # CONTROL -> ALU
+        painter.drawLine(440, 90, 560, 140)
+
+        # CONTROL -> DMEM
+        painter.drawLine(440, 75, 770, 140)
+
+        # DIBUJAR BLOQUES
+        for name, rect in blocks.items():
+
+            active = name in self.active_blocks
+
+            # COLOR
+            if active:
+
+                fill = QColor(self.accent)
+
+                fill.setAlpha(255)
+
+                border = QColor(self.accent)
+
+                pen = QPen(border, 4)
+
+            else:
+
+                fill = QColor("#f8f9ff")
+
+                border = QColor("#d9e2ff")
+
+                pen = QPen(border, 3)
+
+            painter.setPen(pen)
+
+            painter.setBrush(QBrush(fill))
+
+            if active:
+
+                glow = QColor(self.accent)
+                glow.setAlpha(40)
+
+                painter.setBrush(QBrush(glow))
+                painter.setPen(Qt.NoPen)
+
+                glow_rect = rect.adjusted(-8, -8, 8, 8)
+
+                painter.drawRoundedRect(glow_rect, 26, 26)
+
+                painter.setPen(pen)
+                painter.setBrush(QBrush(fill))
+
+            painter.drawRoundedRect(rect, 20, 20)
+
+            # TEXTO
+            painter.setPen(QColor("#44506b"))
+
+            painter.setFont(QFont("Segoe UI", 10, QFont.Bold))
+
+            text_map = {
+
+                "pc": "PC",
+                "imem": "Instruction\nMemory",
+                "control": "Control",
+                "registers": "Registers",
+                "alu": "ALU",
+                "dmem": "Data\nMemory",
+                "wb": "Write Back"
+            }
+
+            painter.drawText(
+                rect,
+                Qt.AlignCenter,
+                text_map[name]
+            )
 
 # PANEL PROCESADOR
 class ProcessorPage(QWidget):
@@ -604,10 +770,15 @@ class ProcessorPage(QWidget):
         circuit_title = QLabel("Datapath")
         circuit_title.setObjectName("sectionTitle")
 
+        # DATAPATH
+        circuit_title = QLabel("Datapath")
+        circuit_title.setObjectName("sectionTitle")
+
         circuit_frame = QFrame()
 
         circuit_frame.setMinimumHeight(340)
 
+        # EL BORDE ORIGINAL SE MANTIENE
         circuit_frame.setStyleSheet(f"""
             background: qlineargradient(
                 x1:0,
@@ -621,6 +792,18 @@ class ProcessorPage(QWidget):
             border: 4px solid {accent};
             border-radius: 34px;
         """)
+
+        # LAYOUT INTERNO
+        circuit_layout = QVBoxLayout()
+
+        circuit_layout.setContentsMargins(20, 20, 20, 20)
+
+        # WIDGET VISUAL
+        self.datapath_widget = DatapathWidget(accent)
+
+        circuit_layout.addWidget(self.datapath_widget)
+
+        circuit_frame.setLayout(circuit_layout)
 
         # METRICAS
         metrics_title = QLabel("Métricas")
@@ -856,6 +1039,113 @@ class ProcessorPage(QWidget):
             text = text[:35] + "..."
 
         return text
+    
+    # ACTUALIZAR DATAPATH
+    def update_datapath(self, snapshot):
+
+        active = []
+
+        architecture = self.selector.currentText()
+
+        cycles = snapshot.metrics.get_metrics().get("cycles", 0)
+
+        # UNICICLO
+        if architecture == "Procesador Uniciclo":
+
+            phase = cycles % 7
+
+            if phase == 0:
+                active = ["pc"]
+
+            elif phase == 1:
+                active = ["imem"]
+
+            elif phase == 2:
+                active = ["control"]
+
+            elif phase == 3:
+                active = ["registers"]
+
+            elif phase == 4:
+                active = ["alu"]
+
+            elif phase == 5:
+                active = ["dmem"]
+
+            elif phase == 6:
+                active = ["wb"]
+
+        # MULTICICLO
+        elif architecture == "Procesador Multiciclo":
+
+            stage = getattr(snapshot, "stage", "")
+
+            if stage == "FETCH":
+
+                active = ["pc", "imem"]
+
+            elif stage == "DECODE":
+
+                active = ["control", "registers"]
+
+            elif stage == "EXECUTE":
+
+                active = ["alu"]
+
+            elif stage == "MEMORY":
+
+                active = ["dmem"]
+
+            elif stage == "WRITEBACK":
+
+                active = ["wb"]
+
+        # PIPELINE
+        else:
+
+            active = []
+
+            # IF
+            if (
+                getattr(snapshot, "if_id", None) is not None
+                and getattr(snapshot.if_id, "instruction", None) is not None
+            ):
+                active.extend([
+                    "pc",
+                    "imem"
+                ])
+
+            # ID
+            if (
+                getattr(snapshot, "id_ex", None) is not None
+                and getattr(snapshot.id_ex, "instruction", None) is not None
+            ):
+                active.extend([
+                    "control",
+                    "registers"
+                ])
+
+            # EX
+            if (
+                getattr(snapshot, "ex_mem", None) is not None
+                and getattr(snapshot.ex_mem, "instruction", None) is not None
+            ):
+                active.append("alu")
+
+            # MEM + WB
+            if (
+                getattr(snapshot, "mem_wb", None) is not None
+                and getattr(snapshot.mem_wb, "instruction", None) is not None
+            ):
+                active.append("dmem")
+                active.append("wb")
+
+            # Stall
+            if hasattr(snapshot, "stalled") and snapshot.stalled:
+                active.append("alu")
+
+        # SOLO LOS ACTIVOS SE ILUMINAN
+        self.datapath_widget.set_active_blocks(active)
             
     # ACTUALIZAR PIPELINE
     def update_pipeline_table(self):
@@ -924,18 +1214,7 @@ class ProcessorPage(QWidget):
 
                 instruction_text = self.format_instruction(snapshot.ir)
 
-                extra = ""
-
-                if snapshot.stage == "DECODE":
-                    extra = f"\nA={snapshot.a} B={snapshot.b}"
-
-                elif snapshot.stage == "EXECUTE":
-                    extra = f"\nALU_OUT={snapshot.alu_out}"
-
-                elif snapshot.stage == "MEMORY":
-                    extra = f"\nMDR={snapshot.mdr}"
-
-                text = f"{instruction_text}{extra}"
+                text = instruction_text
 
                 self.pipeline_stage_labels[current_stage].setText(text)
 
@@ -1133,6 +1412,10 @@ class ProcessorPage(QWidget):
             return
 
         snapshot = self.engine.get_snapshot()
+        print("STALL:", getattr(snapshot, "stalled", None))
+        print("FLUSH:", getattr(snapshot, "flushed", None))
+        print("FA:", getattr(snapshot, "forward_a", None))
+        print("FB:", getattr(snapshot, "forward_b", None))
         self.hazard_box.clear()
 
         # Actualizar pipeline
@@ -1154,6 +1437,8 @@ class ProcessorPage(QWidget):
 
         # Actualizar memoria
         self.update_memory(snapshot)
+
+        self.update_datapath(snapshot)
 
         self.main_window.add_history(
             f"{self.processor_name} - Step ciclo {snapshot.metrics.get_metrics().get('cycles', 0)}"
@@ -1253,6 +1538,8 @@ class ProcessorPage(QWidget):
         self.engine.load_program(
             self.editor.toPlainText()
         )
+
+        self.datapath_widget.set_active_blocks([])
 
     # STOP
     def stop_execution(self):
@@ -1383,6 +1670,54 @@ class ComparisonPage(QWidget):
 
         card_layout.addWidget(title)
 
+        # BOTONES GLOBALES DE COMPARACION
+        compare_buttons = QHBoxLayout()
+
+        self.step_btn = QPushButton("▶ Step")
+        self.run_btn = QPushButton("⏵ Run")
+        self.reset_btn = QPushButton("⟳ Reset")
+        self.stop_btn = QPushButton("■ Stop")
+
+        self.step_btn.setStyleSheet("""
+            background-color: #78a9ff;
+        """)
+
+        self.run_btn.setStyleSheet("""
+            background-color: #8f7cff;
+        """)
+
+        self.reset_btn.setStyleSheet("""
+            background-color: #5fd4be;
+        """)
+
+        self.stop_btn.setStyleSheet("""
+            background-color: #ff7fa8;
+        """)
+
+        compare_buttons.addWidget(self.step_btn)
+        compare_buttons.addWidget(self.run_btn)
+        compare_buttons.addWidget(self.reset_btn)
+        compare_buttons.addWidget(self.stop_btn)
+
+        card_layout.addLayout(compare_buttons)
+
+        # CONEXIONES
+        self.step_btn.clicked.connect(
+            self.step_both
+        )
+
+        self.run_btn.clicked.connect(
+            self.run_both
+        )
+
+        self.reset_btn.clicked.connect(
+            self.reset_both
+        )
+
+        self.stop_btn.clicked.connect(
+            self.stop_both
+        )
+
         # CONTENIDO CENTRAL
         compare_layout = QHBoxLayout()
         compare_layout.setSpacing(12)
@@ -1460,24 +1795,17 @@ class ComparisonPage(QWidget):
             color: #ff5ca8;
         """)
 
-        self.datapath_visual_a = QLabel(
-            "Diagrama del procesador"
+        self.datapath_visual_a = DatapathWidget(
+            "#ff5ca8",
+            scale=0.62
         )
 
-        self.datapath_visual_a.setAlignment(Qt.AlignCenter)
-
-        self.datapath_visual_a.setMinimumHeight(600)
+        self.datapath_visual_a.setMinimumHeight(210)
 
         self.datapath_visual_a.setStyleSheet("""
             background-color: #fff7fb;
             border-radius: 22px;
-            border: 2px dashed #ffd9ea;
-
-            padding: 20px;
-
-            font-size: 11pt;
-            font-weight: bold;
-            color: #c78bab;
+            border: none;
         """)
 
         datapath_layout_a.addWidget(datapath_title_a)
@@ -1562,10 +1890,65 @@ class ComparisonPage(QWidget):
 
         metrics_a.setLayout(metrics_layout_a)
 
+        # ARMAR HAZARDS A
+        hazards_a = QFrame()
+
+        hazards_a.setStyleSheet("""
+            background-color: white;
+            border-radius: 22px;
+            border: 2px solid #ffe4f0;
+        """)
+
+        hazards_layout_a = QVBoxLayout()
+        hazards_layout_a.setContentsMargins(14, 12, 14, 12)
+        hazards_layout_a.setSpacing(6)
+
+        hazards_title_a = QLabel("Hazards Detectados")
+        hazards_title_a.setAlignment(Qt.AlignCenter)
+
+        hazards_title_a.setStyleSheet("""
+            font-size: 11pt;
+            font-weight: bold;
+            color: #ff5ca8;
+
+            padding: 0px;
+            margin: 0px;
+
+            min-height: 18px;
+            max-height: 18px;
+        """)
+
+        self.hazard_compare_a = QListWidget()
+
+        self.hazard_compare_a.setSelectionMode(
+            QAbstractItemView.NoSelection
+        )
+
+        self.hazard_compare_a.setFocusPolicy(Qt.NoFocus)
+
+        self.hazard_compare_a.setMaximumHeight(85)
+
+        hazards_layout_a.addWidget(hazards_title_a)
+        hazards_layout_a.addWidget(self.hazard_compare_a)
+
+        hazards_a.setLayout(hazards_layout_a)
+
+        hazards_a.setMaximumHeight(140)
+        hazards_a.setSizePolicy(
+            QSizePolicy.Preferred,
+            QSizePolicy.Fixed
+        )
+
         # ARMAR
         left_layout.addWidget(left_header)
         left_layout.addWidget(datapath_a)
         left_layout.addWidget(metrics_a)
+        left_layout.addWidget(hazards_a)
+
+        left_card.setSizePolicy(
+            QSizePolicy.Preferred,
+            QSizePolicy.Maximum
+        )
 
         left_card.setLayout(left_layout)
 
@@ -1642,24 +2025,17 @@ class ComparisonPage(QWidget):
             color: #25bdb0;
         """)
 
-        self.datapath_visual_b = QLabel(
-            "Diagrama del procesador"
+        self.datapath_visual_b = DatapathWidget(
+            "#25bdb0",
+            scale=0.62
         )
 
-        self.datapath_visual_b.setAlignment(Qt.AlignCenter)
-
-        self.datapath_visual_b.setMinimumHeight(600)
+        self.datapath_visual_b.setMinimumHeight(210)
 
         self.datapath_visual_b.setStyleSheet("""
             background-color: #f5fffd;
             border-radius: 22px;
-            border: 2px dashed #d7f4ef;
-
-            padding: 20px;
-
-            font-size: 11pt;
-            font-weight: bold;
-            color: #7db7af;
+            border: none;
         """)
 
         datapath_layout_b.addWidget(datapath_title_b)
@@ -1744,10 +2120,65 @@ class ComparisonPage(QWidget):
 
         metrics_b.setLayout(metrics_layout_b)
 
+        # ARMAR HAZARDS B
+        hazards_b = QFrame()
+
+        hazards_b.setStyleSheet("""
+            background-color: white;
+            border-radius: 22px;
+            border: 2px solid #dff5f2;
+        """)
+
+        hazards_layout_b = QVBoxLayout()
+        hazards_layout_b.setContentsMargins(14, 12, 14, 12)
+        hazards_layout_b.setSpacing(6)
+
+        hazards_title_b = QLabel("Hazards Detectados")
+        hazards_title_b.setAlignment(Qt.AlignCenter)
+
+        hazards_title_b.setStyleSheet("""
+            font-size: 11pt;
+            font-weight: bold;
+            color: #25bdb0;
+
+            padding: 0px;
+            margin: 0px;
+
+            min-height: 18px;
+            max-height: 18px;
+        """)
+
+        self.hazard_compare_b = QListWidget()
+
+        self.hazard_compare_b.setSelectionMode(
+            QAbstractItemView.NoSelection
+        )
+
+        self.hazard_compare_b.setFocusPolicy(Qt.NoFocus)
+
+        self.hazard_compare_b.setMaximumHeight(85)
+
+        hazards_layout_b.addWidget(hazards_title_b)
+        hazards_layout_b.addWidget(self.hazard_compare_b)
+
+        hazards_b.setLayout(hazards_layout_b)
+
+        hazards_b.setMaximumHeight(140)
+        hazards_b.setSizePolicy(
+            QSizePolicy.Preferred,
+            QSizePolicy.Fixed
+        )
+
         # ARMAR
         right_layout.addWidget(right_header)
         right_layout.addWidget(datapath_b)
         right_layout.addWidget(metrics_b)
+        right_layout.addWidget(hazards_b)
+
+        right_card.setSizePolicy(
+            QSizePolicy.Preferred,
+            QSizePolicy.Maximum
+        )
 
         right_card.setLayout(right_layout)
 
@@ -1959,6 +2390,62 @@ class ComparisonPage(QWidget):
             QSizePolicy.Preferred
         )
 
+        # COPIAR ESTADO DEL DATAPATH
+        self.datapath_visual_a.set_active_blocks(
+            self.proc_a.datapath_widget.active_blocks
+        )
+
+        self.datapath_visual_b.set_active_blocks(
+            self.proc_b.datapath_widget.active_blocks
+        )
+
+        # COPIAR HAZARDS
+        self.hazard_compare_a.clear()
+
+        for i in range(self.proc_a.hazard_box.count()):
+
+            text = self.proc_a.hazard_box.item(i).text()
+
+            self.hazard_compare_a.addItem(text)
+
+        self.hazard_compare_b.clear()
+
+        for i in range(self.proc_b.hazard_box.count()):
+
+            text = self.proc_b.hazard_box.item(i).text()
+
+            self.hazard_compare_b.addItem(text)
+
+    # STEP AMBOS
+    def step_both(self):
+
+        if self.proc_a.editor.toPlainText().strip():
+            self.proc_a.step_execution()
+
+        if self.proc_b.editor.toPlainText().strip():
+            self.proc_b.step_execution()
+
+    # RUN AMBOS
+    def run_both(self):
+
+        if self.proc_a.editor.toPlainText().strip():
+            self.proc_a.run_execution()
+
+        if self.proc_b.editor.toPlainText().strip():
+            self.proc_b.run_execution()
+
+    # RESET AMBOS
+    def reset_both(self):
+
+        self.proc_a.reset_execution()
+        self.proc_b.reset_execution()
+
+    # STOP AMBOS
+    def stop_both(self):
+
+        self.proc_a.stop_execution()
+        self.proc_b.stop_execution()
+
 # MAIN WINDOW
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -2035,11 +2522,14 @@ class MainWindow(QMainWindow):
             "#25bdb0"
         )
 
-        comparison = ComparisonPage(self.proc_a, self.proc_b)
+        self.comparison = ComparisonPage(
+            self.proc_a,
+            self.proc_b
+        )
         
         main_tabs.addTab(self.proc_a, "Procesador A")
         main_tabs.addTab(self.proc_b, "Procesador B")
-        main_tabs.addTab(comparison, "Comparación")
+        main_tabs.addTab(self.comparison, "Comparación")
 
         # HISTORIAL
         history_card = QFrame()
@@ -2082,8 +2572,8 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(central)
         self.execution_mode_changed()
-        self.proc_a.comparison_page = comparison
-        self.proc_b.comparison_page = comparison
+        self.proc_a.comparison_page = self.comparison
+        self.proc_b.comparison_page = self.comparison
         self.proc_a.main_window = self
         self.proc_b.main_window = self
 
@@ -2125,6 +2615,25 @@ class MainWindow(QMainWindow):
                 proc.stop_btn.setEnabled(False)
 
                 proc.timer.setInterval(1)
+
+        # BOTONES DE COMPARACION
+        if mode == "Step by Step":
+
+            self.comparison.step_btn.setEnabled(True)
+            self.comparison.run_btn.setEnabled(False)
+            self.comparison.stop_btn.setEnabled(False)
+
+        elif mode == "Automático":
+
+            self.comparison.step_btn.setEnabled(False)
+            self.comparison.run_btn.setEnabled(True)
+            self.comparison.stop_btn.setEnabled(True)
+
+        elif mode == "Completo":
+
+            self.comparison.step_btn.setEnabled(False)
+            self.comparison.run_btn.setEnabled(True)
+            self.comparison.stop_btn.setEnabled(False)
 
 # APP
 app = QApplication(sys.argv)
