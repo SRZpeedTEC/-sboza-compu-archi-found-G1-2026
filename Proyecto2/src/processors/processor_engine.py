@@ -41,30 +41,21 @@ class ProcessorEngine(ABC):
             return True
 
 
+    def _collect_registers(self) -> list[int]:
+        """Lee los 32 registros x0..x31 en orden. Reutilizable por cualquier motor."""
+        return [self.register_bank.read(f"x{i}") for i in range(32)]
+
+    def _collect_memory(self) -> dict[int, int]:
+        """Mapea direccion real (index*4) -> valor para toda la memoria de datos."""
+        return {index * 4: value for index, value in enumerate(self.memory._memory)}
+
     def get_snapshot(self) -> ProcessorSnapshot:
-
-        registers = []
-
-        for i in range(32):
-
-            registers.append(
-                self.register_bank.read(f"x{i}")
-            )
-
-        memory = {}
-
-        for index, value in enumerate(self.memory._memory):
-
-            real_address = index * 4
-
-            memory[real_address] = value
-
         return ProcessorSnapshot(
             pc=self.pc,
             metrics=self.metrics,
             control_signals=self.control_signals,
-            registers=registers,
-            memory=memory,
+            registers=self._collect_registers(),
+            memory=self._collect_memory(),
             pipeline=self.pipeline_history
         )
     

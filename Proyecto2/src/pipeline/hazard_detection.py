@@ -90,6 +90,14 @@ def detect_load_use_hazard(if_id, id_ex, decoder) -> bool:
 
     consumer = if_id.instruction
 
+    # IF/ID transporta el string crudo: se decodifica para leer sus fuentes,
+    # igual que hace detect_data_hazard.
+    if isinstance(consumer, str):
+        try:
+            consumer = decoder.decode(consumer)
+        except Exception:
+            return False
+
     rs1 = getattr(consumer, "rs1", None)
     rs2 = getattr(consumer, "rs2", None)
 

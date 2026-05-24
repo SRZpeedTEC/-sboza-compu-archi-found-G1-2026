@@ -99,17 +99,19 @@ class ProcessorSnapshot:
             self.mdr,
 
             # PIPELINE
+            # Los atributos (self.if_id, ...) siguen siendo los dataclasses crudos
+            # que consume la UI; aqui se serializan a dicts None-safe para los tests.
             "if_id":
-            self.if_id,
+            self.if_id.to_dict() if self.if_id is not None else None,
 
             "id_ex":
-            self.id_ex,
+            self.id_ex.to_dict() if self.id_ex is not None else None,
 
             "ex_mem":
-            self.ex_mem,
+            self.ex_mem.to_dict() if self.ex_mem is not None else None,
 
             "mem_wb":
-            self.mem_wb,
+            self.mem_wb.to_dict() if self.mem_wb is not None else None,
 
             "stalled":
             self.stalled,

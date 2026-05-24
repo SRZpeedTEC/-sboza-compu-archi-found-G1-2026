@@ -77,39 +77,42 @@ class PipelineForwardingEngine(ProcessorEngine):
             self.control_signals = self._mem_wb.control
             self.metrics.count_instruction()
 
+        # ---- Control hazard: branch tomado -> flush de IF_ID e ID_EX ----
         if branch_taken:
             self._flushed = True
             self.pc = branch_target
             self._pc_beyond_end = False
             self.metrics.count_cycle()
+            self.record_pipeline_state(
+                "-",
+                IF_ID(),
+                ID_EX(),
+                next_ex_mem,
+                next_mem_wb,
+            )
             self._if_id = IF_ID()
             self._id_ex = ID_EX()
             self._ex_mem = next_ex_mem
             self._mem_wb = next_mem_wb
-            self.record_pipeline_state(
-                fetched_instruction,
-                next_if_id,
-                next_id_ex,
-                next_ex_mem,
-                next_mem_wb
-            )
             self.processor_snapshot = self.get_snapshot()
             return True
 
+        # ---- Load-use hazard: unico stall de datos del modelo con forwarding ----
         if detect_load_use_hazard(self._if_id, self._id_ex, self.decoder):
             self._stalled = True
             self.metrics.count_stall()
             self.metrics.count_cycle()
+            self.record_pipeline_state(
+                self._if_id.instruction if self._if_id.instruction else "-",
+                self._if_id,
+                ID_EX(),   # burbuja
+                next_ex_mem,
+                next_mem_wb,
+            )
+            # Congela PC e IF_ID; inserta burbuja en ID_EX
             self._id_ex = ID_EX()
             self._ex_mem = next_ex_mem
             self._mem_wb = next_mem_wb
-            self.record_pipeline_state(
-                fetched_instruction,
-                next_if_id,
-                next_id_ex,
-                next_ex_mem,
-                next_mem_wb
-            )
             self.processor_snapshot = self.get_snapshot()
             return True
 
@@ -154,46 +157,23 @@ class PipelineForwardingEngine(ProcessorEngine):
 
         return True
 
-    def run(self) -> None:
-        while self.step():
-            pass
+    # run() se hereda de ProcessorEngine: con is_program_finished() sobrescrita
+    # ("pipeline vacio + PC fuera de rango") drena el pipeline correctamente.
 
     def get_snapshot(self) -> ProcessorSnapshot:
-
-        registers = []
-
-        for i in range(32):
-
-            registers.append(
-                self.register_bank.read(f"x{i}")
-            )
-
-        memory = {}
-
-        for index, value in enumerate(self.memory._memory):
-
-            real_address = index * 4
-
-            memory[real_address] = value
-
         return ProcessorSnapshot(
             pc=self.pc,
             metrics=self.metrics,
             control_signals=self.control_signals,
-
-            registers=registers,
-            memory=memory,
-
+            registers=self._collect_registers(),
+            memory=self._collect_memory(),
             pipeline=self.pipeline_history,
-
             if_id=self._if_id,
             id_ex=self._id_ex,
             ex_mem=self._ex_mem,
             mem_wb=self._mem_wb,
-
             stalled=self._stalled,
             flushed=self._flushed,
-
             forward_a=self._forward_a,
-            forward_b=self._forward_b
+            forward_b=self._forward_b,
         )
