@@ -15,14 +15,15 @@ from src.UI.datapaths.multi_cycle_state_mapper import (
 
 
 class MultiCycleDatapathView(QWidget):
-    def __init__(self, accent: str, parent=None):
+    def __init__(self, accent: str, parent=None, min_scale: float = 0.5, min_height: int = 470):
         super().__init__(parent)
 
         self.accent = accent
+        self.min_scale = min_scale
         self.theme = DatapathTheme()
         self.state = map_multi_cycle_datapath_state(None)
 
-        self.setMinimumHeight(470)
+        self.setMinimumHeight(min_height)
         self.setStyleSheet("""
             background: transparent;
             border: none;
@@ -45,7 +46,7 @@ class MultiCycleDatapathView(QWidget):
             self.width() / MULTI_CYCLE_CONTENT_WIDTH,
             self.height() / MULTI_CYCLE_CONTENT_HEIGHT,
         )
-        scale = max(0.5, min(scale, 1.0))
+        scale = max(self.min_scale, min(scale, 1.0))
 
         scaled_width = MULTI_CYCLE_CONTENT_WIDTH * scale
         scaled_height = MULTI_CYCLE_CONTENT_HEIGHT * scale

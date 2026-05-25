@@ -179,6 +179,8 @@ class ProcessorSimulationMixin:
             self.single_cycle_datapath_widget.clear()
         if hasattr(self, "multi_cycle_datapath_widget"):
             self.multi_cycle_datapath_widget.clear()
+        if hasattr(self, "pipeline_datapath_widget"):
+            self.pipeline_datapath_widget.clear()
         if hasattr(self, "update_datapath_visibility"):
             self.update_datapath_visibility()
 

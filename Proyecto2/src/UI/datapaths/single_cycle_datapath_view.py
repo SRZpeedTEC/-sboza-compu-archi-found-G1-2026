@@ -16,14 +16,15 @@ from src.UI.datapaths.single_cycle_state_mapper import (
 
 
 class SingleCycleDatapathView(QWidget):
-    def __init__(self, accent: str, parent=None):
+    def __init__(self, accent: str, parent=None, min_scale: float = 0.55, min_height: int = 320):
         super().__init__(parent)
 
         self.accent = accent
+        self.min_scale = min_scale
         self.theme = DatapathTheme()
         self.state = map_single_cycle_datapath_state(None)
 
-        self.setMinimumHeight(320)
+        self.setMinimumHeight(min_height)
         self.setStyleSheet("""
             background: transparent;
             border: none;
@@ -46,7 +47,7 @@ class SingleCycleDatapathView(QWidget):
             self.width() / SINGLE_CYCLE_CONTENT_WIDTH,
             self.height() / SINGLE_CYCLE_CONTENT_HEIGHT,
         )
-        scale = max(0.55, min(scale, 1.0))
+        scale = max(self.min_scale, min(scale, 1.0))
 
         scaled_width = SINGLE_CYCLE_CONTENT_WIDTH * scale
         scaled_height = SINGLE_CYCLE_CONTENT_HEIGHT * scale

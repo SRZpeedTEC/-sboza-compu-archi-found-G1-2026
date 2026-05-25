@@ -2,8 +2,8 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import *
 
 from src.UI.datapaths.multi_cycle_datapath_view import MultiCycleDatapathView
+from src.UI.datapaths.pipeline_datapath_view import PipelineDatapathView
 from src.UI.datapaths.single_cycle_datapath_view import SingleCycleDatapathView
-from src.UI.widgets.datapath_view import DatapathWidget
 
 
 class ComparisonPage(QWidget):
@@ -167,25 +167,16 @@ class ComparisonPage(QWidget):
             color: #ff5ca8;
         """)
 
-        self.datapath_visual_a = DatapathWidget(
-            "#ff5ca8",
-            scale=0.63
-        )
-        self.single_cycle_visual_a = SingleCycleDatapathView("#ff5ca8")
-        self.multi_cycle_visual_a = MultiCycleDatapathView("#ff5ca8")
+        self.pipeline_visual_a = PipelineDatapathView("#ff5ca8", min_scale=0.34, min_height=250)
+        self.single_cycle_visual_a = SingleCycleDatapathView("#ff5ca8", min_scale=0.42, min_height=220)
+        self.multi_cycle_visual_a = MultiCycleDatapathView("#ff5ca8", min_scale=0.34, min_height=260)
 
-        self.datapath_visual_a.setMinimumHeight(210)
-        self.single_cycle_visual_a.setMinimumHeight(260)
-        self.multi_cycle_visual_a.setMinimumHeight(300)
-
-        self.datapath_visual_a.setStyleSheet("""
-            background-color: #fff7fb;
-            border-radius: 22px;
-            border: none;
-        """)
+        self.pipeline_visual_a.setMinimumHeight(250)
+        self.single_cycle_visual_a.setMinimumHeight(220)
+        self.multi_cycle_visual_a.setMinimumHeight(260)
 
         datapath_layout_a.addWidget(datapath_title_a)
-        datapath_layout_a.addWidget(self.datapath_visual_a)
+        datapath_layout_a.addWidget(self.pipeline_visual_a)
         datapath_layout_a.addWidget(self.single_cycle_visual_a)
         datapath_layout_a.addWidget(self.multi_cycle_visual_a)
 
@@ -403,25 +394,16 @@ class ComparisonPage(QWidget):
             color: #25bdb0;
         """)
 
-        self.datapath_visual_b = DatapathWidget(
-            "#25bdb0",
-            scale=0.63
-        )
-        self.single_cycle_visual_b = SingleCycleDatapathView("#25bdb0")
-        self.multi_cycle_visual_b = MultiCycleDatapathView("#25bdb0")
+        self.pipeline_visual_b = PipelineDatapathView("#25bdb0", min_scale=0.34, min_height=250)
+        self.single_cycle_visual_b = SingleCycleDatapathView("#25bdb0", min_scale=0.42, min_height=220)
+        self.multi_cycle_visual_b = MultiCycleDatapathView("#25bdb0", min_scale=0.34, min_height=260)
 
-        self.datapath_visual_b.setMinimumHeight(210)
-        self.single_cycle_visual_b.setMinimumHeight(260)
-        self.multi_cycle_visual_b.setMinimumHeight(300)
-
-        self.datapath_visual_b.setStyleSheet("""
-            background-color: #f5fffd;
-            border-radius: 22px;
-            border: none;
-        """)
+        self.pipeline_visual_b.setMinimumHeight(250)
+        self.single_cycle_visual_b.setMinimumHeight(220)
+        self.multi_cycle_visual_b.setMinimumHeight(260)
 
         datapath_layout_b.addWidget(datapath_title_b)
-        datapath_layout_b.addWidget(self.datapath_visual_b)
+        datapath_layout_b.addWidget(self.pipeline_visual_b)
         datapath_layout_b.addWidget(self.single_cycle_visual_b)
         datapath_layout_b.addWidget(self.multi_cycle_visual_b)
 
@@ -777,14 +759,14 @@ class ComparisonPage(QWidget):
 
         self._update_datapath_preview(
             self.proc_a,
-            self.datapath_visual_a,
+            self.pipeline_visual_a,
             self.single_cycle_visual_a,
             self.multi_cycle_visual_a
         )
 
         self._update_datapath_preview(
             self.proc_b,
-            self.datapath_visual_b,
+            self.pipeline_visual_b,
             self.single_cycle_visual_b,
             self.multi_cycle_visual_b
         )
@@ -862,7 +844,4 @@ class ComparisonPage(QWidget):
         elif is_multi_cycle:
             multi_cycle_view.set_snapshot(snapshot)
         else:
-            pipeline_view.set_active_blocks(
-                processor.datapath_widget.active_blocks
-            )
-
+            pipeline_view.set_snapshot(snapshot)

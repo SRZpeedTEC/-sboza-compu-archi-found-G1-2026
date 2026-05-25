@@ -24,8 +24,6 @@ class ProcessorRenderingMixin:
     # ACTUALIZAR DATAPATH
     def update_datapath(self, snapshot):
 
-        active = []
-
         architecture = self.selector.currentText()
 
         # UNICICLO
@@ -33,63 +31,21 @@ class ProcessorRenderingMixin:
 
             if hasattr(self, "single_cycle_datapath_widget"):
                 self.single_cycle_datapath_widget.set_snapshot(snapshot)
-            self.datapath_widget.set_active_blocks([])
-            return
 
         # MULTICICLO
         elif architecture == "Procesador Multiciclo":
 
             if hasattr(self, "multi_cycle_datapath_widget"):
                 self.multi_cycle_datapath_widget.set_snapshot(snapshot)
-            self.datapath_widget.set_active_blocks([])
-            return
 
-        # PIPELINE
+        # PIPELINE (Forwarding / Stalls)
         else:
 
-            active = []
+            if hasattr(self, "pipeline_datapath_widget"):
+                self.pipeline_datapath_widget.set_snapshot(snapshot)
 
-            # IF
-            if (
-                getattr(snapshot, "if_id", None) is not None
-                and getattr(snapshot.if_id, "instruction", None) is not None
-            ):
-                active.extend([
-                    "pc",
-                    "imem"
-                ])
-
-            # ID
-            if (
-                getattr(snapshot, "id_ex", None) is not None
-                and getattr(snapshot.id_ex, "instruction", None) is not None
-            ):
-                active.extend([
-                    "control",
-                    "registers"
-                ])
-
-            # EX
-            if (
-                getattr(snapshot, "ex_mem", None) is not None
-                and getattr(snapshot.ex_mem, "instruction", None) is not None
-            ):
-                active.append("alu")
-
-            # MEM + WB
-            if (
-                getattr(snapshot, "mem_wb", None) is not None
-                and getattr(snapshot.mem_wb, "instruction", None) is not None
-            ):
-                active.append("dmem")
-                active.append("wb")
-
-            # Stall
-            if hasattr(snapshot, "stalled") and snapshot.stalled:
-                active.append("alu")
-
-        # SOLO LOS ACTIVOS SE ILUMINAN
-        self.datapath_widget.set_active_blocks(active)
+        # El DatapathWidget viejo queda oculto en todas las vistas nuevas.
+        self.datapath_widget.set_active_blocks([])
 
     def update_editor_execution_line(self, snapshot):
         if not hasattr(self, "editor"):
