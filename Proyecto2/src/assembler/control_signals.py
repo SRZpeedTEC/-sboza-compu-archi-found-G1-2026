@@ -18,6 +18,14 @@ class ControlSignals:
     branch: bool = False
     branch_condition: str | None = None  # "beq", "bne" o None
     alu_control: str = "ADD"
+
+    # Senales especificas del datapath multiciclo. En uniciclo/pipeline quedan
+    # en None para no mezclar ciclos de control que esas arquitecturas no usan.
+    pc_write: bool | None = None
+    adr_src: str | None = None
+    ir_write: bool | None = None
+    alu_src_a: str | None = None
+    alu_src_b: str | None = None
         
 
     def get_snapshot(self) -> dict[str, bool | str | None]:

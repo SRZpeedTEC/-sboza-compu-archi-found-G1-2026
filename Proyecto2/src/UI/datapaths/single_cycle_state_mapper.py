@@ -48,7 +48,7 @@ def map_single_cycle_datapath_state(snapshot) -> dict:
                 ("MemWrite", _bool_value(control.get("mem_write"))),
                 ("ALUSrc", control.get("alu_src")),
                 ("ResultSrc", control.get("result_src")),
-                ("PCSrc", _selected_pc_src(control, trace)),
+                ("PCSrc", _pc_src_signal(control, trace)),
                 ("Branch", _bool_value(control.get("branch"))),
                 ("ALUCtrl", control.get("alu_control")),
             ],
@@ -57,8 +57,7 @@ def map_single_cycle_datapath_state(snapshot) -> dict:
         "pc_src_mux": _module(
             "pc_src_mux",
             [
-                ("PCSrc", _selected_pc_src(control, trace)),
-                ("selected", _selected_pc_source(control, trace)),
+                ("PCSrc", _pc_src_signal(control, trace)),
             ],
             active_modules,
         ),
@@ -99,9 +98,6 @@ def map_single_cycle_datapath_state(snapshot) -> dict:
             "alu_src_mux",
             [
                 ("ALUSrc", control.get("alu_src")),
-                ("selected", control.get("alu_src")),
-                ("A", "R1" if opcode != "-" else "-"),
-                ("B", _alu_b_source(control)),
             ],
             active_modules,
         ),
@@ -131,8 +127,6 @@ def map_single_cycle_datapath_state(snapshot) -> dict:
             "result_src_mux",
             [
                 ("ResultSrc", control.get("result_src")),
-                ("selected", _selected_result_source(control)),
-                ("WB", trace.get("writeback_value")),
             ],
             active_modules,
         ),
@@ -248,35 +242,12 @@ def _control_snapshot(control) -> dict:
     }
 
 
-def _selected_pc_src(control: dict, trace: dict) -> str:
+def _pc_src_signal(control: dict, trace: dict) -> str:
     if "pc_src" in trace:
         return _value(trace["pc_src"])
     if "pc_src" in control:
         return _value(control["pc_src"])
     return "-"
-
-
-def _selected_pc_source(control: dict, trace: dict) -> str:
-    if trace.get("branch_taken") is True:
-        return "branch_target"
-
-    pc_src = _selected_pc_src(control, trace)
-    if pc_src in {"branch", "branch_target"}:
-        return "branch_target"
-    if pc_src == "-":
-        return "-"
-    return "pc_plus_4"
-
-
-def _selected_result_source(control: dict) -> str:
-    result_src = _value(control.get("result_src"))
-    if result_src == "none":
-        return "none"
-    return result_src
-
-
-def _alu_b_source(control: dict) -> str:
-    return "imm" if control.get("alu_src") == "imm" else "R2"
 
 
 def _instruction_text(instruction, trace: dict) -> str:

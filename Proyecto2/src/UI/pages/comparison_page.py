@@ -1,6 +1,8 @@
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import *
 
+from src.UI.datapaths.multi_cycle_datapath_view import MultiCycleDatapathView
+from src.UI.datapaths.single_cycle_datapath_view import SingleCycleDatapathView
 from src.UI.widgets.datapath_view import DatapathWidget
 
 
@@ -169,8 +171,12 @@ class ComparisonPage(QWidget):
             "#ff5ca8",
             scale=0.63
         )
+        self.single_cycle_visual_a = SingleCycleDatapathView("#ff5ca8")
+        self.multi_cycle_visual_a = MultiCycleDatapathView("#ff5ca8")
 
         self.datapath_visual_a.setMinimumHeight(210)
+        self.single_cycle_visual_a.setMinimumHeight(260)
+        self.multi_cycle_visual_a.setMinimumHeight(300)
 
         self.datapath_visual_a.setStyleSheet("""
             background-color: #fff7fb;
@@ -180,6 +186,8 @@ class ComparisonPage(QWidget):
 
         datapath_layout_a.addWidget(datapath_title_a)
         datapath_layout_a.addWidget(self.datapath_visual_a)
+        datapath_layout_a.addWidget(self.single_cycle_visual_a)
+        datapath_layout_a.addWidget(self.multi_cycle_visual_a)
 
         datapath_a.setLayout(datapath_layout_a)
 
@@ -399,8 +407,12 @@ class ComparisonPage(QWidget):
             "#25bdb0",
             scale=0.63
         )
+        self.single_cycle_visual_b = SingleCycleDatapathView("#25bdb0")
+        self.multi_cycle_visual_b = MultiCycleDatapathView("#25bdb0")
 
         self.datapath_visual_b.setMinimumHeight(210)
+        self.single_cycle_visual_b.setMinimumHeight(260)
+        self.multi_cycle_visual_b.setMinimumHeight(300)
 
         self.datapath_visual_b.setStyleSheet("""
             background-color: #f5fffd;
@@ -410,6 +422,8 @@ class ComparisonPage(QWidget):
 
         datapath_layout_b.addWidget(datapath_title_b)
         datapath_layout_b.addWidget(self.datapath_visual_b)
+        datapath_layout_b.addWidget(self.single_cycle_visual_b)
+        datapath_layout_b.addWidget(self.multi_cycle_visual_b)
 
         datapath_b.setLayout(datapath_layout_b)
 
@@ -629,6 +643,7 @@ class ComparisonPage(QWidget):
         )
 
         self.timer.start(200)
+        self.update_comparison()
     
     # ACTUALIZAR COMPARACION
     def update_comparison(self):
@@ -760,13 +775,18 @@ class ComparisonPage(QWidget):
             QSizePolicy.Preferred
         )
 
-        # COPIAR ESTADO DEL DATAPATH
-        self.datapath_visual_a.set_active_blocks(
-            self.proc_a.datapath_widget.active_blocks
+        self._update_datapath_preview(
+            self.proc_a,
+            self.datapath_visual_a,
+            self.single_cycle_visual_a,
+            self.multi_cycle_visual_a
         )
 
-        self.datapath_visual_b.set_active_blocks(
-            self.proc_b.datapath_widget.active_blocks
+        self._update_datapath_preview(
+            self.proc_b,
+            self.datapath_visual_b,
+            self.single_cycle_visual_b,
+            self.multi_cycle_visual_b
         )
 
         # COPIAR HAZARDS
@@ -815,4 +835,34 @@ class ComparisonPage(QWidget):
 
         self.proc_a.stop_execution()
         self.proc_b.stop_execution()
+
+    def _update_datapath_preview(
+        self,
+        processor,
+        pipeline_view,
+        single_cycle_view,
+        multi_cycle_view
+    ):
+        architecture = processor.selector.currentText()
+        snapshot = (
+            processor.engine.get_snapshot()
+            if processor.engine is not None
+            else None
+        )
+
+        is_single_cycle = architecture == "Procesador Uniciclo"
+        is_multi_cycle = architecture == "Procesador Multiciclo"
+
+        pipeline_view.setVisible(not is_single_cycle and not is_multi_cycle)
+        single_cycle_view.setVisible(is_single_cycle)
+        multi_cycle_view.setVisible(is_multi_cycle)
+
+        if is_single_cycle:
+            single_cycle_view.set_snapshot(snapshot)
+        elif is_multi_cycle:
+            multi_cycle_view.set_snapshot(snapshot)
+        else:
+            pipeline_view.set_active_blocks(
+                processor.datapath_widget.active_blocks
+            )
 

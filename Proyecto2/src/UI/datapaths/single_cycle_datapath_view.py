@@ -135,7 +135,7 @@ class SingleCycleDatapathView(QWidget):
         key: str,
     ) -> None:
         if active:
-            fill = QColor(self.theme.active_fill)
+            fill = QColor(self._active_fill())
             border = QColor(self.accent)
             text = QColor(self.theme.text)
             title_text = QColor(self.theme.title_text)
@@ -310,7 +310,6 @@ class SingleCycleDatapathView(QWidget):
             "PCSrc": "PCSrc",
             "ALUSrc": "ALUSrc",
             "ResultSrc": "ResultSrc",
-            "selected": "sel",
         }
         value_map = {
             "branch_target": "branch",
@@ -355,3 +354,8 @@ class SingleCycleDatapathView(QWidget):
             return text
 
         return metrics.elidedText(text, Qt.ElideRight, int(max_width))
+
+    def _active_fill(self) -> str:
+        if QColor(self.accent).hue() in range(150, 190):
+            return "#e5fbf7"
+        return self.theme.active_fill

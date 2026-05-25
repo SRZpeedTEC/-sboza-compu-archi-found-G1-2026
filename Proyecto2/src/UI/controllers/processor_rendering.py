@@ -39,27 +39,10 @@ class ProcessorRenderingMixin:
         # MULTICICLO
         elif architecture == "Procesador Multiciclo":
 
-            stage = getattr(snapshot, "stage", "")
-
-            if stage == "FETCH":
-
-                active = ["pc", "imem"]
-
-            elif stage == "DECODE":
-
-                active = ["control", "registers"]
-
-            elif stage == "EXECUTE":
-
-                active = ["alu"]
-
-            elif stage == "MEMORY":
-
-                active = ["dmem"]
-
-            elif stage == "WRITEBACK":
-
-                active = ["wb"]
+            if hasattr(self, "multi_cycle_datapath_widget"):
+                self.multi_cycle_datapath_widget.set_snapshot(snapshot)
+            self.datapath_widget.set_active_blocks([])
+            return
 
         # PIPELINE
         else:
@@ -114,6 +97,8 @@ class ProcessorRenderingMixin:
 
         trace = getattr(snapshot, "single_cycle_trace", {}) or {}
         pc = trace.get("pc")
+        if pc is None:
+            pc = getattr(snapshot, "multi_cycle_old_pc", None)
         line_number = self._source_line_for_pc(pc)
 
         if line_number is None:
@@ -234,7 +219,12 @@ class ProcessorRenderingMixin:
                 "WRITEBACK": "WB"
             }
 
-            current_stage = stage_map.get(snapshot.stage)
+            raw_stage = getattr(
+                snapshot,
+                "multi_cycle_active_stage",
+                snapshot.stage
+            )
+            current_stage = stage_map.get(raw_stage)
 
             if current_stage:
 

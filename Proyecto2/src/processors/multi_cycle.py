@@ -1,3 +1,4 @@
+from dataclasses import replace
 from enum import Enum, auto
 
 from src.processors.processor_engine import ProcessorEngine
@@ -42,6 +43,8 @@ class MultiCycleEngine(ProcessorEngine):
         self._mdr: int = 0                # Memory Data Register
         self._instruction = None
         self._control_signal: ControlSignals | None = None
+        self._last_completed_stage: str | None = None
+        self._branch_taken: bool | None = None
 
 
     # Interfaz publica
@@ -49,6 +52,8 @@ class MultiCycleEngine(ProcessorEngine):
         #Avanza un ciclo de reloj. Retorna False cuando el programa termino.#
         if self._stage == Stage.FETCH and self.is_program_finished():
             return False
+
+        self._last_completed_stage = self._stage.name
 
         match self._stage:
             case Stage.FETCH:
@@ -95,7 +100,7 @@ class MultiCycleEngine(ProcessorEngine):
 
             metrics=self.metrics,
 
-            control_signals=self.control_signals,
+            control_signals=self._get_multicycle_control_signals(),
 
             registers=registers,
 
@@ -113,8 +118,90 @@ class MultiCycleEngine(ProcessorEngine):
 
             alu_out=self._alu_out,
 
-            mdr=self._mdr
+            mdr=self._mdr,
+
+            current_instruction=self._instruction,
+
+            multi_cycle_active_stage=self._last_completed_stage,
+
+            multi_cycle_old_pc=self._old_pc,
+
+            multi_cycle_branch_taken=self._branch_taken,
         )
+
+    def _get_multicycle_control_signals(self) -> ControlSignals:
+        stage = self._last_completed_stage
+        opcode = (
+            self._instruction.opcode
+            if self._instruction is not None
+            else None
+        )
+        base = (
+            self._control_signal
+            if stage in {"DECODE", "EXECUTE", "MEMORY", "WRITEBACK"}
+            and self._control_signal is not None
+            else ControlSignals()
+        )
+
+        if stage == "FETCH":
+            return replace(
+                base,
+                pc_write=True,
+                adr_src="PC",
+                ir_write=True,
+                alu_src_a="PC",
+                alu_src_b="4",
+            )
+
+        if stage == "DECODE":
+            return replace(
+                base,
+                pc_write=False,
+                adr_src=None,
+                ir_write=False,
+                alu_src_a=None,
+                alu_src_b=None,
+            )
+
+        if stage == "EXECUTE":
+            return replace(
+                base,
+                pc_write=(
+                    self._branch_taken
+                    if opcode in {"beq", "bne"}
+                    else False
+                ),
+                adr_src=None,
+                ir_write=False,
+                alu_src_a="A",
+                alu_src_b=(
+                    "B"
+                    if opcode in {"add", "sub", "and", "or", "xor", "beq", "bne"}
+                    else "imm"
+                ),
+            )
+
+        if stage == "MEMORY":
+            return replace(
+                base,
+                pc_write=False,
+                adr_src="ALUOut",
+                ir_write=False,
+                alu_src_a=None,
+                alu_src_b=None,
+            )
+
+        if stage == "WRITEBACK":
+            return replace(
+                base,
+                pc_write=False,
+                adr_src=None,
+                ir_write=False,
+                alu_src_a=None,
+                alu_src_b=None,
+            )
+
+        return base
 
 
     # ------ Etapas de la maquina de estados ----------
@@ -122,6 +209,7 @@ class MultiCycleEngine(ProcessorEngine):
 
     def _do_fetch(self) -> None:
         #IF: lee la instruccion de memoria e incrementa el PC.
+        self._branch_taken = None
         self._old_pc = self.pc
         self._ir = self.instruction_memory.fetch(self.pc)
         self.pc += 4
@@ -161,6 +249,8 @@ class MultiCycleEngine(ProcessorEngine):
         elif opcode in {"beq", "bne"}:
             result = self.alu.execute(cs.alu_control, self._a, self._b)
             condition_met = (result == 0) if opcode == "beq" else (result != 0)
+            self._branch_taken = condition_met
+            self._alu_out = result
 
             if condition_met:
                 # El decoder resuelve labels a direcciones absolutas

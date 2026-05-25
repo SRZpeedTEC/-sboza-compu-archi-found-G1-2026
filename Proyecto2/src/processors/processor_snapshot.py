@@ -41,6 +41,9 @@ class ProcessorSnapshot:
         # UI UNICICLO
         current_instruction=None,
         single_cycle_trace=None,
+        multi_cycle_active_stage=None,
+        multi_cycle_old_pc=None,
+        multi_cycle_branch_taken=None,
 
     ) -> None:
 
@@ -76,6 +79,9 @@ class ProcessorSnapshot:
 
         self.current_instruction = current_instruction
         self.single_cycle_trace = single_cycle_trace or {}
+        self.multi_cycle_active_stage = multi_cycle_active_stage
+        self.multi_cycle_old_pc = multi_cycle_old_pc
+        self.multi_cycle_branch_taken = multi_cycle_branch_taken
 
     def get_snapshot(self):
 
@@ -85,6 +91,9 @@ class ProcessorSnapshot:
 
             "metrics":
             self.metrics.get_metrics(),
+
+            "control_signals":
+            self.control_signals.get_snapshot(),
 
             # MULTICICLO
             "stage":
@@ -136,5 +145,14 @@ class ProcessorSnapshot:
             self.current_instruction,
 
             "single_cycle_trace":
-            self.single_cycle_trace
+            self.single_cycle_trace,
+
+            "multi_cycle_active_stage":
+            self.multi_cycle_active_stage,
+
+            "multi_cycle_old_pc":
+            self.multi_cycle_old_pc,
+
+            "multi_cycle_branch_taken":
+            self.multi_cycle_branch_taken
         }

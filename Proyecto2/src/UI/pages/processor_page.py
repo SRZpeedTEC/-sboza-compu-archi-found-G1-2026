@@ -3,6 +3,7 @@ from PySide6.QtWidgets import *
 
 from src.UI.controllers.processor_rendering import ProcessorRenderingMixin
 from src.UI.controllers.simulation_controller import ProcessorSimulationMixin
+from src.UI.datapaths.multi_cycle_datapath_view import MultiCycleDatapathView
 from src.UI.datapaths.single_cycle_datapath_view import SingleCycleDatapathView
 from src.UI.widgets.datapath_view import DatapathWidget
 from src.UI.widgets.metric_card import MetricCard
@@ -356,7 +357,7 @@ class ProcessorPage(ProcessorSimulationMixin, ProcessorRenderingMixin, QWidget):
 
         circuit_frame = QFrame()
 
-        circuit_frame.setMinimumHeight(340)
+        circuit_frame.setMinimumHeight(520)
 
         # BORDE
         circuit_frame.setStyleSheet(f"""
@@ -381,9 +382,11 @@ class ProcessorPage(ProcessorSimulationMixin, ProcessorRenderingMixin, QWidget):
         # WIDGET VISUAL
         self.datapath_widget = DatapathWidget(accent)
         self.single_cycle_datapath_widget = SingleCycleDatapathView(accent)
+        self.multi_cycle_datapath_widget = MultiCycleDatapathView(accent)
 
         circuit_layout.addWidget(self.datapath_widget)
         circuit_layout.addWidget(self.single_cycle_datapath_widget)
+        circuit_layout.addWidget(self.multi_cycle_datapath_widget)
 
         circuit_frame.setLayout(circuit_layout)
 
@@ -602,6 +605,10 @@ class ProcessorPage(ProcessorSimulationMixin, ProcessorRenderingMixin, QWidget):
         is_single_cycle = (
             self.selector.currentText() == "Procesador Uniciclo"
         )
+        is_multi_cycle = (
+            self.selector.currentText() == "Procesador Multiciclo"
+        )
 
-        self.datapath_widget.setVisible(not is_single_cycle)
+        self.datapath_widget.setVisible(not is_single_cycle and not is_multi_cycle)
         self.single_cycle_datapath_widget.setVisible(is_single_cycle)
+        self.multi_cycle_datapath_widget.setVisible(is_multi_cycle)
