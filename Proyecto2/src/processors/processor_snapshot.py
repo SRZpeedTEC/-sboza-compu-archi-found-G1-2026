@@ -38,6 +38,10 @@ class ProcessorSnapshot:
         forward_a="ID/EX",
         forward_b="ID/EX",
 
+        # UI UNICICLO
+        current_instruction=None,
+        single_cycle_trace=None,
+
     ) -> None:
 
         self.pc = pc
@@ -69,6 +73,9 @@ class ProcessorSnapshot:
 
         self.forward_a = forward_a
         self.forward_b = forward_b
+
+        self.current_instruction = current_instruction
+        self.single_cycle_trace = single_cycle_trace or {}
 
     def get_snapshot(self):
 
@@ -123,5 +130,11 @@ class ProcessorSnapshot:
             self.forward_a,
 
             "forward_b":
-            self.forward_b
+            self.forward_b,
+
+            "current_instruction":
+            self.current_instruction,
+
+            "single_cycle_trace":
+            self.single_cycle_trace
         }

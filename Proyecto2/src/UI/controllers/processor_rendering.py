@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QTableWidgetItem
+from PySide6.QtGui import QColor, QTextCharFormat, QTextCursor, QTextFormat
+from PySide6.QtWidgets import QTableWidgetItem, QTextEdit
 
 
 class ProcessorRenderingMixin:
@@ -28,33 +28,13 @@ class ProcessorRenderingMixin:
 
         architecture = self.selector.currentText()
 
-        cycles = snapshot.metrics.get_metrics().get("cycles", 0)
-
         # UNICICLO
         if architecture == "Procesador Uniciclo":
 
-            phase = cycles % 7
-
-            if phase == 0:
-                active = ["pc"]
-
-            elif phase == 1:
-                active = ["imem"]
-
-            elif phase == 2:
-                active = ["control"]
-
-            elif phase == 3:
-                active = ["registers"]
-
-            elif phase == 4:
-                active = ["alu"]
-
-            elif phase == 5:
-                active = ["dmem"]
-
-            elif phase == 6:
-                active = ["wb"]
+            if hasattr(self, "single_cycle_datapath_widget"):
+                self.single_cycle_datapath_widget.set_snapshot(snapshot)
+            self.datapath_widget.set_active_blocks([])
+            return
 
         # MULTICICLO
         elif architecture == "Procesador Multiciclo":
@@ -127,6 +107,71 @@ class ProcessorRenderingMixin:
 
         # SOLO LOS ACTIVOS SE ILUMINAN
         self.datapath_widget.set_active_blocks(active)
+
+    def update_editor_execution_line(self, snapshot):
+        if not hasattr(self, "editor"):
+            return
+
+        trace = getattr(snapshot, "single_cycle_trace", {}) or {}
+        pc = trace.get("pc")
+        line_number = self._source_line_for_pc(pc)
+
+        if line_number is None:
+            self.clear_editor_execution_line()
+            return
+
+        selection = QTextEdit.ExtraSelection()
+        block = self.editor.document().findBlockByNumber(line_number)
+        selection.cursor = QTextCursor(block)
+        selection.cursor.clearSelection()
+
+        selection.format = QTextCharFormat()
+        selection.format.setBackground(QColor("#fff1c7"))
+        selection.format.setProperty(
+            QTextFormat.FullWidthSelection,
+            True
+        )
+
+        self.editor.setExtraSelections([selection])
+        self.editor.setTextCursor(selection.cursor)
+        self.editor.centerCursor()
+
+    def clear_editor_execution_line(self):
+        if hasattr(self, "editor"):
+            self.editor.setExtraSelections([])
+
+    def _source_line_for_pc(self, pc):
+        if pc is None:
+            return None
+
+        try:
+            instruction_index = int(pc) // 4
+        except (TypeError, ValueError):
+            return None
+
+        current_index = 0
+
+        for line_number, original_line in enumerate(
+            self.editor.toPlainText().splitlines()
+        ):
+            line = original_line.split("#", 1)[0].strip()
+
+            if not line:
+                continue
+
+            if ":" in line:
+                _, line = line.split(":", 1)
+                line = line.strip()
+
+                if not line:
+                    continue
+
+            if current_index == instruction_index:
+                return line_number
+
+            current_index += 1
+
+        return None
             
     # ACTUALIZAR PIPELINE
     def update_pipeline_table(self):
