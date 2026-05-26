@@ -190,6 +190,28 @@ class ProcessorRenderingMixin:
 
                 self.pipeline_stage_labels[current_stage].setText(text)
 
+            # Actualizar widget FSM
+            if hasattr(self, "fsm_widget"):
+                self.fsm_widget.set_current_state(raw_stage)
+
+                instr_text = (
+                    self.format_instruction(snapshot.ir)
+                    if getattr(snapshot, "ir", None)
+                    else ""
+                )
+                self.fsm_widget.set_active_instruction(instr_text)
+
+                # Valores dinamicos para el cuadro de anotacion
+                stage_data: dict = {}
+                old_pc = getattr(snapshot, "multi_cycle_old_pc", None)
+                if old_pc is not None:
+                    stage_data["pc"] = old_pc
+                for key in ("a", "b", "alu_out", "mdr"):
+                    val = getattr(snapshot, key, None)
+                    if val is not None:
+                        stage_data[key] = val
+                self.fsm_widget.set_stage_data(stage_data)
+
             return
 
         # UNICICLO

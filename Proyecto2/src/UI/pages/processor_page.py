@@ -7,6 +7,7 @@ from src.UI.datapaths.multi_cycle_datapath_view import MultiCycleDatapathView
 from src.UI.datapaths.pipeline_datapath_view import PipelineDatapathView
 from src.UI.datapaths.single_cycle_datapath_view import SingleCycleDatapathView
 from src.UI.widgets.datapath_view import DatapathWidget
+from src.UI.widgets.fsm_widget import MultiCycleFSMWidget
 from src.UI.widgets.metric_card import MetricCard
 
 
@@ -344,13 +345,20 @@ class ProcessorPage(ProcessorSimulationMixin, ProcessorRenderingMixin, QWidget):
         pipeline_container.addWidget(state_container)
 
         top_split.addLayout(editor_container, 1)
+
+        # Panel derecho: pipeline (pág 0) ó FSM multiciclo (pág 1)
         pipeline_widget = QWidget()
         pipeline_widget.setLayout(pipeline_container)
 
-        pipeline_widget.setMinimumWidth(720)
-        pipeline_widget.setMaximumWidth(720)
+        self.fsm_widget = MultiCycleFSMWidget()
 
-        top_split.addWidget(pipeline_widget)
+        self.right_stacked = QStackedWidget()
+        self.right_stacked.addWidget(pipeline_widget)   # índice 0
+        self.right_stacked.addWidget(self.fsm_widget)   # índice 1
+        self.right_stacked.setMinimumWidth(720)
+        self.right_stacked.setMaximumWidth(720)
+
+        top_split.addWidget(self.right_stacked)
 
         # DATAPATH
         circuit_title = QLabel("Datapath")
@@ -620,3 +628,9 @@ class ProcessorPage(ProcessorSimulationMixin, ProcessorRenderingMixin, QWidget):
         self.multi_cycle_datapath_widget.setVisible(is_multi_cycle)
         self.pipeline_datapath_widget.setVisible(is_pipeline)
         self.datapath_widget.setVisible(False)
+
+        # Panel derecho: FSM para multiciclo, tabla pipeline para el resto
+        if hasattr(self, "right_stacked"):
+            self.right_stacked.setCurrentIndex(1 if is_multi_cycle else 0)
+            if is_multi_cycle:
+                self.fsm_widget.clear()
