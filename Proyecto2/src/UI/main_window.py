@@ -95,24 +95,29 @@ class MainWindow(QMainWindow):
         history_card.setObjectName("mainCard")
 
         history_layout = QVBoxLayout()
+        history_layout.setContentsMargins(16, 14, 16, 14)
+        history_layout.setSpacing(10)
 
         history_title = QLabel("Historial de Ejecuciones")
         history_title.setObjectName("sectionTitle")
 
-        self.history = QListWidget()
+        # Scroll area que contiene las tarjetas de cada ejecucion
+        self.history_scroll = QScrollArea()
+        self.history_scroll.setWidgetResizable(True)
+        self.history_scroll.setFrameShape(QFrame.NoFrame)
+        self.history_scroll.setMinimumHeight(180)
+        self.history_scroll.setMaximumHeight(240)
 
-        self.history.setSelectionMode(
-            QAbstractItemView.NoSelection
-        )
+        self.history_container = QWidget()
+        self.history_inner = QVBoxLayout(self.history_container)
+        self.history_inner.setContentsMargins(0, 0, 0, 0)
+        self.history_inner.setSpacing(6)
+        self.history_inner.addStretch()   # empuja las tarjetas hacia arriba
 
-        self.history.setFocusPolicy(Qt.NoFocus)
-
-        # Historial inicialmente vacío
-        self.history.clear()
-        self.history.setMinimumHeight(180)
+        self.history_scroll.setWidget(self.history_container)
 
         history_layout.addWidget(history_title)
-        history_layout.addWidget(self.history)
+        history_layout.addWidget(self.history_scroll)
         history_card.setLayout(history_layout)
 
         # MAIN
@@ -136,11 +141,91 @@ class MainWindow(QMainWindow):
         self.proc_a.main_window = self
         self.proc_b.main_window = self
 
-    def add_history(self, text):
-        self.history.insertItem(0, text)
-        # Mantener máximo 20
-        while self.history.count() > 20:
-            self.history.takeItem(20)
+    # Badge por arquitectura: (texto_corto, color_hex)
+    _ARCH_BADGE = {
+        "Procesador Uniciclo":      ("UC", "#ff9f7a"),
+        "Procesador Multiciclo":    ("MC", "#78a9ff"),
+        "Pipeline con Forwarding":  ("PF", "#8f7cff"),
+        "Pipeline con Stalls":      ("PS", "#5fd4be"),
+    }
+
+    def add_history(self, entry: dict) -> None:
+        """Inserta una tarjeta al principio del historial (max 10 entradas).
+
+        entry debe tener las claves:
+            processor    – nombre del procesador ("Procesador A")
+            architecture – arquitectura seleccionada
+            cycles       – ciclos totales (int)
+            instructions – instrucciones ejecutadas (int)
+            cpi          – CPI calculado (float)
+            total_time   – tiempo total formateado ("12.1 ns")
+        """
+        arch = entry.get("architecture", "?")
+        badge_text, badge_color = self._ARCH_BADGE.get(arch, ("?", "#aaaaaa"))
+
+        # ---- Tarjeta ----
+        card = QFrame()
+        card.setStyleSheet(f"""
+            QFrame {{
+                background: white;
+                border: 1px solid {badge_color}66;
+                border-left: 5px solid {badge_color};
+                border-radius: 10px;
+            }}
+        """)
+
+        card_layout = QHBoxLayout(card)
+        card_layout.setContentsMargins(10, 8, 14, 8)
+        card_layout.setSpacing(14)
+
+        # Badge de arquitectura
+        badge = QLabel(badge_text)
+        badge.setFixedSize(42, 42)
+        badge.setAlignment(Qt.AlignCenter)
+        badge.setStyleSheet(f"""
+            background: {badge_color};
+            color: white;
+            font-weight: bold;
+            font-size: 11pt;
+            border-radius: 8px;
+            border: none;
+        """)
+
+        # Info
+        info_col = QVBoxLayout()
+        info_col.setSpacing(3)
+
+        name_lbl = QLabel(
+            f"<b>{entry.get('processor', '?')}</b>"
+            f"  —  {arch}"
+        )
+        name_lbl.setStyleSheet("font-size: 10pt; color: #22264a; border: none;")
+
+        metrics_lbl = QLabel(
+            f"Ciclos: <b>{entry.get('cycles', 0)}</b>"
+            f"   |   Instrucciones: <b>{entry.get('instructions', 0)}</b>"
+            f"   |   CPI: <b>{entry.get('cpi', '—')}</b>"
+            f"   |   Tiempo total: <b>{entry.get('total_time', '—')}</b>"
+        )
+        metrics_lbl.setStyleSheet("font-size: 9pt; color: #556699; border: none;")
+        metrics_lbl.setTextFormat(Qt.RichText)
+
+        info_col.addWidget(name_lbl)
+        info_col.addWidget(metrics_lbl)
+
+        card_layout.addWidget(badge)
+        card_layout.addLayout(info_col)
+        card_layout.addStretch()
+
+        # Insertar la tarjeta nueva al principio (indice 0)
+        self.history_inner.insertWidget(0, card)
+
+        # Limitar a 10 entradas: eliminar la mas antigua (justo antes del stretch)
+        while (self.history_inner.count() - 1) > 10:
+            oldest_idx = self.history_inner.count() - 2
+            item = self.history_inner.takeAt(oldest_idx)
+            if item and item.widget():
+                item.widget().deleteLater()
     
     def execution_mode_changed(self):
 

@@ -190,6 +190,28 @@ class ProcessorRenderingMixin:
 
                 self.pipeline_stage_labels[current_stage].setText(text)
 
+            # Actualizar widget FSM
+            if hasattr(self, "fsm_widget"):
+                self.fsm_widget.set_current_state(raw_stage)
+
+                instr_text = (
+                    self.format_instruction(snapshot.ir)
+                    if getattr(snapshot, "ir", None)
+                    else ""
+                )
+                self.fsm_widget.set_active_instruction(instr_text)
+
+                # Valores dinamicos para el cuadro de anotacion
+                stage_data: dict = {}
+                old_pc = getattr(snapshot, "multi_cycle_old_pc", None)
+                if old_pc is not None:
+                    stage_data["pc"] = old_pc
+                for key in ("a", "b", "alu_out", "mdr"):
+                    val = getattr(snapshot, key, None)
+                    if val is not None:
+                        stage_data[key] = val
+                self.fsm_widget.set_stage_data(stage_data)
+
             return
 
         # UNICICLO
@@ -300,36 +322,44 @@ class ProcessorRenderingMixin:
 
     # ACTUALIZAR METRICAS
     def update_metrics(self, snapshot):
+        from src.core.latency import (
+            CLOCK_PERIOD_SINGLE_CYCLE,
+            CLOCK_PERIOD_MULTICYCLE,
+            CLOCK_PERIOD_PIPELINE,
+            fmt_time,
+        )
+
+        # Periodo del reloj segun arquitectura (para mostrar T_ciclo)
+        architecture = self.selector.currentText()
+        if architecture == "Procesador Uniciclo":
+            clock_ps = CLOCK_PERIOD_SINGLE_CYCLE   # 980 ps
+        elif architecture == "Procesador Multiciclo":
+            clock_ps = CLOCK_PERIOD_MULTICYCLE     # 275 ps
+        else:
+            clock_ps = CLOCK_PERIOD_PIPELINE       # 275 ps
 
         metrics = snapshot.metrics.get_metrics()
 
-        cycles = metrics.get("cycles", 0)
+        cycles       = metrics.get("cycles", 0)
         instructions = metrics.get("instructions", 0)
+        # Tiempo total acumulado instruccion a instruccion (ps)
+        total_ps     = metrics.get("time_ps", 0)
 
         cpi = 0
-
         if instructions > 0:
             cpi = round(cycles / instructions, 2)
 
         self.metric_cycles.set_value(cycles)
-
-        self.metric_instructions.set_value(
-            instructions
-        )
-
+        self.metric_instructions.set_value(instructions)
         self.metric_cpi.set_value(cpi)
 
-        self.metric_time.set_value(
-            f"{cycles * 4} ns"
-        )
+        # "Tiempo" = periodo de un ciclo de reloj (ruta critica del procesador)
+        self.metric_time.set_value(fmt_time(clock_ps))
 
-        self.metric_pc.set_value(
-            hex(snapshot.pc)
-        )
+        self.metric_pc.set_value(hex(snapshot.pc))
 
-        self.metric_total.set_value(
-            f"{cycles * 4} ns"
-        )
+        # "Tiempo Total" = suma de rutas criticas de instrucciones completadas
+        self.metric_total.set_value(fmt_time(total_ps))
     
     # ACTUALIZAR REGISTROS
     def update_registers(self, snapshot):

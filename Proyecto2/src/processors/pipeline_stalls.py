@@ -6,6 +6,7 @@ ID/EX hasta que la instruccion productora complete WB.
 Penalizacion de control (branch tomado): 2 ciclos (flush de IF_ID e ID_EX).
 """
 
+from src.core.latency import PIPELINE_LATENCY_PS
 from src.processors.processor_engine import ProcessorEngine
 from src.processors.processor_snapshot import ProcessorSnapshot
 from src.assembler import ControlSignals
@@ -78,6 +79,7 @@ class PipelineStallEngine(ProcessorEngine):
             self.pc = branch_target
             self._pc_beyond_end = False
             self.metrics.count_cycle()
+            self.metrics.add_time(PIPELINE_LATENCY_PS)
             self.record_pipeline_state(
                 "-",
                 IF_ID(),
@@ -106,6 +108,7 @@ class PipelineStallEngine(ProcessorEngine):
             self._stalled = True
             self.metrics.count_stall()
             self.metrics.count_cycle()
+            self.metrics.add_time(PIPELINE_LATENCY_PS)
             self.record_pipeline_state(
                 self._if_id.instruction if self._if_id.instruction else "-",
                 self._if_id,
@@ -136,6 +139,7 @@ class PipelineStallEngine(ProcessorEngine):
             self._pc_beyond_end = True
 
         self.metrics.count_cycle()
+        self.metrics.add_time(PIPELINE_LATENCY_PS)
         self.record_pipeline_state(
             next_if_id.instruction if next_if_id.instruction else "-",
             self._if_id,

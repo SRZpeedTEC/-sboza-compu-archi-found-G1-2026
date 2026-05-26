@@ -9,6 +9,7 @@ inmediato.
 from dataclasses import replace
 
 from src.assembler import ControlSignals
+from src.core.latency import PIPELINE_LATENCY_PS
 from src.pipeline.forwarding_unit import resolve_forwarding
 from src.pipeline.hazard_detection import detect_load_use_hazard
 from src.pipeline.pipeline_registers import IF_ID, ID_EX, EX_MEM, MEM_WB
@@ -83,6 +84,7 @@ class PipelineForwardingEngine(ProcessorEngine):
             self.pc = branch_target
             self._pc_beyond_end = False
             self.metrics.count_cycle()
+            self.metrics.add_time(PIPELINE_LATENCY_PS)
             self.record_pipeline_state(
                 "-",
                 IF_ID(),
@@ -102,6 +104,7 @@ class PipelineForwardingEngine(ProcessorEngine):
             self._stalled = True
             self.metrics.count_stall()
             self.metrics.count_cycle()
+            self.metrics.add_time(PIPELINE_LATENCY_PS)
             self.record_pipeline_state(
                 self._if_id.instruction if self._if_id.instruction else "-",
                 self._if_id,
@@ -138,6 +141,7 @@ class PipelineForwardingEngine(ProcessorEngine):
             self._pc_beyond_end = True
 
         self.metrics.count_cycle()
+        self.metrics.add_time(PIPELINE_LATENCY_PS)
 
         # Guardar estado ACTUAL antes del avance
         self.record_pipeline_state(

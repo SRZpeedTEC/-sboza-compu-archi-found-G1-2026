@@ -1,3 +1,4 @@
+from src.core.latency import SINGLE_CYCLE_LATENCY_PS
 from src.processors.processor_engine import ProcessorEngine
 
 class SingleCycleEngine(ProcessorEngine):
@@ -52,6 +53,9 @@ class SingleCycleEngine(ProcessorEngine):
         self.single_cycle_trace["next_pc"] = self.pc
         self.metrics.count_cycle()
         self.metrics.count_instruction()
+        self.metrics.add_time(
+            SINGLE_CYCLE_LATENCY_PS.get(instruction.opcode, 730)
+        )
         self.processor_snapshot = self.get_snapshot()
         return True
 
