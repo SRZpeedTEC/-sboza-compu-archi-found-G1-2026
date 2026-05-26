@@ -41,6 +41,11 @@ class ProcessorSimulationMixin:
                 self.hazard_box.item(self.hazard_box.count()-1).text() != "Programa finalizado":
                     self.hazard_box.addItem("Programa finalizado")
 
+            # Registrar ejecucion completa en el historial
+            snapshot = self.engine.get_snapshot()
+            self.main_window.add_history(
+                self._build_history_entry(snapshot)
+            )
             return
 
         snapshot = self.engine.get_snapshot()
@@ -72,10 +77,6 @@ class ProcessorSimulationMixin:
 
         self.update_datapath(snapshot)
         self.update_editor_execution_line(snapshot)
-
-        self.main_window.add_history(
-            f"{self.processor_name} - Step ciclo {snapshot.metrics.get_metrics().get('cycles', 0)}"
-        )
 
     # RUN
     def run_execution(self):
@@ -117,7 +118,7 @@ class ProcessorSimulationMixin:
                 "Ejecución completa finalizada"
             )
             self.main_window.add_history(
-                f"{self.processor_name} - Ejecución completa finalizada"
+                self._build_history_entry(snapshot)
             )
             self.update_pipeline_state(snapshot)
             self.update_datapath(snapshot)
@@ -275,4 +276,38 @@ class ProcessorSimulationMixin:
         self.engine.load_program(source_code)
 
         self.running = False
+
+    # CONSTRUIR ENTRADA DE HISTORIAL
+    def _build_history_entry(self, snapshot) -> dict:
+        """Devuelve un dict con las metricas del snapshot para el historial."""
+        from src.core.latency import (
+            CLOCK_PERIOD_SINGLE_CYCLE,
+            CLOCK_PERIOD_MULTICYCLE,
+            CLOCK_PERIOD_PIPELINE,
+            fmt_time,
+        )
+
+        architecture = self.selector.currentText()
+
+        if architecture == "Procesador Uniciclo":
+            clock_ps = CLOCK_PERIOD_SINGLE_CYCLE
+        elif architecture == "Procesador Multiciclo":
+            clock_ps = CLOCK_PERIOD_MULTICYCLE
+        else:
+            clock_ps = CLOCK_PERIOD_PIPELINE
+
+        m = snapshot.metrics.get_metrics()
+        cycles       = m.get("cycles", 0)
+        instructions = m.get("instructions", 0)
+        cpi          = round(cycles / instructions, 2) if instructions > 0 else 0
+        total_time   = fmt_time(cycles * clock_ps)
+
+        return {
+            "processor":    self.processor_name,
+            "architecture": architecture,
+            "cycles":       cycles,
+            "instructions": instructions,
+            "cpi":          cpi,
+            "total_time":   total_time,
+        }
 
