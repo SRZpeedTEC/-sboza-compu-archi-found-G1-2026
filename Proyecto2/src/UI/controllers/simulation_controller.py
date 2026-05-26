@@ -299,8 +299,9 @@ class ProcessorSimulationMixin:
         m = snapshot.metrics.get_metrics()
         cycles       = m.get("cycles", 0)
         instructions = m.get("instructions", 0)
+        total_ps     = m.get("time_ps", 0)   # suma de rutas criticas acumuladas
         cpi          = round(cycles / instructions, 2) if instructions > 0 else 0
-        total_time   = fmt_time(cycles * clock_ps)
+        total_time   = fmt_time(total_ps)
 
         return {
             "processor":    self.processor_name,

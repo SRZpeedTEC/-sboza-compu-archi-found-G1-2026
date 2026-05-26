@@ -329,7 +329,7 @@ class ProcessorRenderingMixin:
             fmt_time,
         )
 
-        # Periodo del reloj segun arquitectura
+        # Periodo del reloj segun arquitectura (para mostrar T_ciclo)
         architecture = self.selector.currentText()
         if architecture == "Procesador Uniciclo":
             clock_ps = CLOCK_PERIOD_SINGLE_CYCLE   # 980 ps
@@ -340,37 +340,26 @@ class ProcessorRenderingMixin:
 
         metrics = snapshot.metrics.get_metrics()
 
-        cycles = metrics.get("cycles", 0)
+        cycles       = metrics.get("cycles", 0)
         instructions = metrics.get("instructions", 0)
+        # Tiempo total acumulado instruccion a instruccion (ps)
+        total_ps     = metrics.get("time_ps", 0)
 
         cpi = 0
-
         if instructions > 0:
             cpi = round(cycles / instructions, 2)
 
-        total_ps = cycles * clock_ps
-
         self.metric_cycles.set_value(cycles)
-
-        self.metric_instructions.set_value(
-            instructions
-        )
-
+        self.metric_instructions.set_value(instructions)
         self.metric_cpi.set_value(cpi)
 
-        # "Tiempo" = periodo de un ciclo de reloj
-        self.metric_time.set_value(
-            fmt_time(clock_ps)
-        )
+        # "Tiempo" = periodo de un ciclo de reloj (ruta critica del procesador)
+        self.metric_time.set_value(fmt_time(clock_ps))
 
-        self.metric_pc.set_value(
-            hex(snapshot.pc)
-        )
+        self.metric_pc.set_value(hex(snapshot.pc))
 
-        # "Tiempo Total" = ciclos * periodo
-        self.metric_total.set_value(
-            fmt_time(total_ps)
-        )
+        # "Tiempo Total" = suma de rutas criticas de instrucciones completadas
+        self.metric_total.set_value(fmt_time(total_ps))
     
     # ACTUALIZAR REGISTROS
     def update_registers(self, snapshot):

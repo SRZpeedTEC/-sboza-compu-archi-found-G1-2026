@@ -109,6 +109,47 @@ CLOCK_PERIOD_MULTICYCLE: int = max(
 CLOCK_PERIOD_PIPELINE: int = CLOCK_PERIOD_MULTICYCLE  # 275 ps
 
 # ---------------------------------------------------------------------------
+# Ruta critica por opcode  (se acumula en Metrics.time_ps)
+# ---------------------------------------------------------------------------
+
+# Uniciclo: camino real de cada instruccion (ps)
+SINGLE_CYCLE_LATENCY_PS: dict[str, int] = {
+    "add":  _PATH_RTYPE,    # 730
+    "sub":  _PATH_RTYPE,    # 730
+    "and":  _PATH_RTYPE,    # 730
+    "or":   _PATH_RTYPE,    # 730
+    "xor":  _PATH_RTYPE,    # 730
+    "addi": _PATH_ITYPE,    # 730
+    "lw":   _PATH_LW,       # 980  <- mas lento
+    "sw":   _PATH_SW,       # 855
+    "beq":  _PATH_BRANCH,   # 455
+    "bne":  _PATH_BRANCH,   # 455
+}
+
+# Multiciclo: n_etapas * periodo_de_reloj (cada etapa = 1 ciclo de 275 ps)
+#   R-type / addi / sw  → 4 etapas
+#   lw                  → 5 etapas
+#   beq / bne           → 3 etapas
+MULTICYCLE_LATENCY_PS: dict[str, int] = {
+    "add":  4 * CLOCK_PERIOD_MULTICYCLE,   # 1100
+    "sub":  4 * CLOCK_PERIOD_MULTICYCLE,
+    "and":  4 * CLOCK_PERIOD_MULTICYCLE,
+    "or":   4 * CLOCK_PERIOD_MULTICYCLE,
+    "xor":  4 * CLOCK_PERIOD_MULTICYCLE,
+    "addi": 4 * CLOCK_PERIOD_MULTICYCLE,   # 1100
+    "lw":   5 * CLOCK_PERIOD_MULTICYCLE,   # 1375
+    "sw":   4 * CLOCK_PERIOD_MULTICYCLE,   # 1100
+    "beq":  3 * CLOCK_PERIOD_MULTICYCLE,   # 825
+    "bne":  3 * CLOCK_PERIOD_MULTICYCLE,   # 825
+}
+
+# Pipeline: 1 ciclo de reloj por instruccion (estado estacionario).
+# Las burbujas y flushes se reflejan en el CPI pero no en el tiempo
+# atribuido por instruccion (eso es correcto: el tiempo real = cycles*275,
+# pero la contribucion de una instruccion al throughput = 1 ciclo).
+PIPELINE_LATENCY_PS: int = CLOCK_PERIOD_PIPELINE   # 275
+
+# ---------------------------------------------------------------------------
 # Utilidad: formato legible
 # ---------------------------------------------------------------------------
 
