@@ -322,6 +322,21 @@ class ProcessorRenderingMixin:
 
     # ACTUALIZAR METRICAS
     def update_metrics(self, snapshot):
+        from src.core.latency import (
+            CLOCK_PERIOD_SINGLE_CYCLE,
+            CLOCK_PERIOD_MULTICYCLE,
+            CLOCK_PERIOD_PIPELINE,
+            fmt_time,
+        )
+
+        # Periodo del reloj segun arquitectura
+        architecture = self.selector.currentText()
+        if architecture == "Procesador Uniciclo":
+            clock_ps = CLOCK_PERIOD_SINGLE_CYCLE   # 980 ps
+        elif architecture == "Procesador Multiciclo":
+            clock_ps = CLOCK_PERIOD_MULTICYCLE     # 275 ps
+        else:
+            clock_ps = CLOCK_PERIOD_PIPELINE       # 275 ps
 
         metrics = snapshot.metrics.get_metrics()
 
@@ -333,6 +348,8 @@ class ProcessorRenderingMixin:
         if instructions > 0:
             cpi = round(cycles / instructions, 2)
 
+        total_ps = cycles * clock_ps
+
         self.metric_cycles.set_value(cycles)
 
         self.metric_instructions.set_value(
@@ -341,16 +358,18 @@ class ProcessorRenderingMixin:
 
         self.metric_cpi.set_value(cpi)
 
+        # "Tiempo" = periodo de un ciclo de reloj
         self.metric_time.set_value(
-            f"{cycles * 4} ns"
+            fmt_time(clock_ps)
         )
 
         self.metric_pc.set_value(
             hex(snapshot.pc)
         )
 
+        # "Tiempo Total" = ciclos * periodo
         self.metric_total.set_value(
-            f"{cycles * 4} ns"
+            fmt_time(total_ps)
         )
     
     # ACTUALIZAR REGISTROS
