@@ -56,7 +56,9 @@ class ProcessorEngine(ABC):
             control_signals=self.control_signals,
             registers=self._collect_registers(),
             memory=self._collect_memory(),
-            pipeline=self.pipeline_history
+            pipeline=self.pipeline_history,
+            current_instruction=getattr(self, "current_instruction", None),
+            single_cycle_trace=getattr(self, "single_cycle_trace", None)
         )
     
 

@@ -12,6 +12,8 @@ class ProcessorSimulationMixin:
     def architecture_changed(self):
 
         self.reset_execution()
+        if hasattr(self, "update_datapath_visibility"):
+            self.update_datapath_visibility()
 
         if hasattr(self, "comparison_page"):
             self.comparison_page.update_comparison()
@@ -69,6 +71,7 @@ class ProcessorSimulationMixin:
         self.update_memory(snapshot)
 
         self.update_datapath(snapshot)
+        self.update_editor_execution_line(snapshot)
 
         self.main_window.add_history(
             f"{self.processor_name} - Step ciclo {snapshot.metrics.get_metrics().get('cycles', 0)}"
@@ -117,6 +120,7 @@ class ProcessorSimulationMixin:
                 f"{self.processor_name} - Ejecución completa finalizada"
             )
             self.update_pipeline_state(snapshot)
+            self.update_datapath(snapshot)
 
             QApplication.processEvents()
         else:
@@ -170,6 +174,15 @@ class ProcessorSimulationMixin:
         )
 
         self.datapath_widget.set_active_blocks([])
+        self.clear_editor_execution_line()
+        if hasattr(self, "single_cycle_datapath_widget"):
+            self.single_cycle_datapath_widget.clear()
+        if hasattr(self, "multi_cycle_datapath_widget"):
+            self.multi_cycle_datapath_widget.clear()
+        if hasattr(self, "pipeline_datapath_widget"):
+            self.pipeline_datapath_widget.clear()
+        if hasattr(self, "update_datapath_visibility"):
+            self.update_datapath_visibility()
 
     # STOP
     def stop_execution(self):

@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QTableWidgetItem
+from PySide6.QtGui import QColor, QTextCharFormat, QTextCursor, QTextFormat
+from PySide6.QtWidgets import QTableWidgetItem, QTextEdit
 
 
 class ProcessorRenderingMixin:
@@ -24,109 +24,95 @@ class ProcessorRenderingMixin:
     # ACTUALIZAR DATAPATH
     def update_datapath(self, snapshot):
 
-        active = []
-
         architecture = self.selector.currentText()
-
-        cycles = snapshot.metrics.get_metrics().get("cycles", 0)
 
         # UNICICLO
         if architecture == "Procesador Uniciclo":
 
-            phase = cycles % 7
-
-            if phase == 0:
-                active = ["pc"]
-
-            elif phase == 1:
-                active = ["imem"]
-
-            elif phase == 2:
-                active = ["control"]
-
-            elif phase == 3:
-                active = ["registers"]
-
-            elif phase == 4:
-                active = ["alu"]
-
-            elif phase == 5:
-                active = ["dmem"]
-
-            elif phase == 6:
-                active = ["wb"]
+            if hasattr(self, "single_cycle_datapath_widget"):
+                self.single_cycle_datapath_widget.set_snapshot(snapshot)
 
         # MULTICICLO
         elif architecture == "Procesador Multiciclo":
 
-            stage = getattr(snapshot, "stage", "")
+            if hasattr(self, "multi_cycle_datapath_widget"):
+                self.multi_cycle_datapath_widget.set_snapshot(snapshot)
 
-            if stage == "FETCH":
-
-                active = ["pc", "imem"]
-
-            elif stage == "DECODE":
-
-                active = ["control", "registers"]
-
-            elif stage == "EXECUTE":
-
-                active = ["alu"]
-
-            elif stage == "MEMORY":
-
-                active = ["dmem"]
-
-            elif stage == "WRITEBACK":
-
-                active = ["wb"]
-
-        # PIPELINE
+        # PIPELINE (Forwarding / Stalls)
         else:
 
-            active = []
+            if hasattr(self, "pipeline_datapath_widget"):
+                self.pipeline_datapath_widget.set_snapshot(snapshot)
 
-            # IF
-            if (
-                getattr(snapshot, "if_id", None) is not None
-                and getattr(snapshot.if_id, "instruction", None) is not None
-            ):
-                active.extend([
-                    "pc",
-                    "imem"
-                ])
+        # El DatapathWidget viejo queda oculto en todas las vistas nuevas.
+        self.datapath_widget.set_active_blocks([])
 
-            # ID
-            if (
-                getattr(snapshot, "id_ex", None) is not None
-                and getattr(snapshot.id_ex, "instruction", None) is not None
-            ):
-                active.extend([
-                    "control",
-                    "registers"
-                ])
+    def update_editor_execution_line(self, snapshot):
+        if not hasattr(self, "editor"):
+            return
 
-            # EX
-            if (
-                getattr(snapshot, "ex_mem", None) is not None
-                and getattr(snapshot.ex_mem, "instruction", None) is not None
-            ):
-                active.append("alu")
+        trace = getattr(snapshot, "single_cycle_trace", {}) or {}
+        pc = trace.get("pc")
+        if pc is None:
+            pc = getattr(snapshot, "multi_cycle_old_pc", None)
+        line_number = self._source_line_for_pc(pc)
 
-            # MEM + WB
-            if (
-                getattr(snapshot, "mem_wb", None) is not None
-                and getattr(snapshot.mem_wb, "instruction", None) is not None
-            ):
-                active.append("dmem")
-                active.append("wb")
+        if line_number is None:
+            self.clear_editor_execution_line()
+            return
 
-            # Stall
-            if hasattr(snapshot, "stalled") and snapshot.stalled:
-                active.append("alu")
+        selection = QTextEdit.ExtraSelection()
+        block = self.editor.document().findBlockByNumber(line_number)
+        selection.cursor = QTextCursor(block)
+        selection.cursor.clearSelection()
 
-        # SOLO LOS ACTIVOS SE ILUMINAN
-        self.datapath_widget.set_active_blocks(active)
+        selection.format = QTextCharFormat()
+        selection.format.setBackground(QColor("#fff1c7"))
+        selection.format.setProperty(
+            QTextFormat.FullWidthSelection,
+            True
+        )
+
+        self.editor.setExtraSelections([selection])
+        self.editor.setTextCursor(selection.cursor)
+        self.editor.centerCursor()
+
+    def clear_editor_execution_line(self):
+        if hasattr(self, "editor"):
+            self.editor.setExtraSelections([])
+
+    def _source_line_for_pc(self, pc):
+        if pc is None:
+            return None
+
+        try:
+            instruction_index = int(pc) // 4
+        except (TypeError, ValueError):
+            return None
+
+        current_index = 0
+
+        for line_number, original_line in enumerate(
+            self.editor.toPlainText().splitlines()
+        ):
+            line = original_line.split("#", 1)[0].strip()
+
+            if not line:
+                continue
+
+            if ":" in line:
+                _, line = line.split(":", 1)
+                line = line.strip()
+
+                if not line:
+                    continue
+
+            if current_index == instruction_index:
+                return line_number
+
+            current_index += 1
+
+        return None
             
     # ACTUALIZAR PIPELINE
     def update_pipeline_table(self):
@@ -189,7 +175,12 @@ class ProcessorRenderingMixin:
                 "WRITEBACK": "WB"
             }
 
-            current_stage = stage_map.get(snapshot.stage)
+            raw_stage = getattr(
+                snapshot,
+                "multi_cycle_active_stage",
+                snapshot.stage
+            )
+            current_stage = stage_map.get(raw_stage)
 
             if current_stage:
 

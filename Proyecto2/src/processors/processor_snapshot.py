@@ -38,6 +38,13 @@ class ProcessorSnapshot:
         forward_a="ID/EX",
         forward_b="ID/EX",
 
+        # UI UNICICLO
+        current_instruction=None,
+        single_cycle_trace=None,
+        multi_cycle_active_stage=None,
+        multi_cycle_old_pc=None,
+        multi_cycle_branch_taken=None,
+
     ) -> None:
 
         self.pc = pc
@@ -70,6 +77,12 @@ class ProcessorSnapshot:
         self.forward_a = forward_a
         self.forward_b = forward_b
 
+        self.current_instruction = current_instruction
+        self.single_cycle_trace = single_cycle_trace or {}
+        self.multi_cycle_active_stage = multi_cycle_active_stage
+        self.multi_cycle_old_pc = multi_cycle_old_pc
+        self.multi_cycle_branch_taken = multi_cycle_branch_taken
+
     def get_snapshot(self):
 
         return {
@@ -78,6 +91,9 @@ class ProcessorSnapshot:
 
             "metrics":
             self.metrics.get_metrics(),
+
+            "control_signals":
+            self.control_signals.get_snapshot(),
 
             # MULTICICLO
             "stage":
@@ -123,5 +139,20 @@ class ProcessorSnapshot:
             self.forward_a,
 
             "forward_b":
-            self.forward_b
+            self.forward_b,
+
+            "current_instruction":
+            self.current_instruction,
+
+            "single_cycle_trace":
+            self.single_cycle_trace,
+
+            "multi_cycle_active_stage":
+            self.multi_cycle_active_stage,
+
+            "multi_cycle_old_pc":
+            self.multi_cycle_old_pc,
+
+            "multi_cycle_branch_taken":
+            self.multi_cycle_branch_taken
         }
