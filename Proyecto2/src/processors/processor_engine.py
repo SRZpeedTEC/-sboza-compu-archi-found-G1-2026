@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from src.assembler.parser import Parser
+import re
+
+from src.assembler.parser import AssemblyValidationError, Parser
 from src.processors.processor_snapshot import ProcessorSnapshot
 from src.core import Metrics, Decoder, ALU, RegisterBank, Memory, InstructionMemory, ControlUnit
 from src.assembler import ControlSignals, Instruction
@@ -21,16 +23,82 @@ class ProcessorEngine(ABC):
         self.memory = Memory()
         self.instruction_memory = InstructionMemory()
         self.pipeline_history = []
+        self.labels = {}
+        self.decoder = Decoder()
+        self.instruction_line_numbers = {}
 
         # Temporary variable to hold the source code for potential debugging or visualization purposes
         self.source_code = Path("programs/test.asm").read_text(encoding="utf-8")
 
 
     def load_program(self, source_code : str) -> None:
-        instructions, labels  = self.parser.parse_text(source_code)
+        instructions, labels, line_numbers = self.validate_program(source_code)
         self.labels = labels
         self.instruction_memory.load_instructions(instructions)
         self.decoder = Decoder(labels)
+        self.instruction_line_numbers = line_numbers
+
+
+    @classmethod
+    def validate_program(
+        cls,
+        source_code: str
+    ) -> tuple[list[str], dict[str, int], dict[int, int]]:
+        """Valida el programa completo usando Parser, InstructionMemory y Decoder reales."""
+        parser = Parser()
+
+        try:
+            instructions, labels, line_numbers = parser.parse_text_with_line_numbers(
+                source_code
+            )
+
+            # Se usa InstructionMemory para validar la misma entrada que recibiran los motores.
+            instruction_memory = InstructionMemory()
+            instruction_memory.load_instructions(instructions)
+
+            decoder = Decoder(labels)
+
+            for index, raw_instruction in enumerate(instructions):
+                try:
+                    decoder.decode(raw_instruction)
+                except ValueError as exc:
+                    raise cls._build_validation_error(
+                        exc,
+                        index,
+                        raw_instruction,
+                        line_numbers
+                    ) from exc
+
+            return instructions, labels, line_numbers
+
+        except AssemblyValidationError:
+            raise
+        except ValueError as exc:
+            raise AssemblyValidationError(str(exc)) from exc
+
+
+    @staticmethod
+    def _build_validation_error(
+        exc: ValueError,
+        instruction_index: int,
+        raw_instruction: str,
+        line_numbers: dict[int, int]
+    ) -> AssemblyValidationError:
+        description = str(exc)
+        token = None
+        match = re.search(r"'([^']+)'", description)
+
+        if match:
+            token = match.group(1)
+        elif raw_instruction:
+            token = raw_instruction.split()[0]
+
+        return AssemblyValidationError(
+            description=description,
+            line_number=line_numbers.get(instruction_index),
+            instruction=raw_instruction,
+            token=token,
+        )
 
 
     def is_program_finished(self) -> bool:

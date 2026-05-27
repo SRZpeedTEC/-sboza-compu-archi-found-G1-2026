@@ -1,10 +1,19 @@
 from PySide6.QtWidgets import QApplication, QTableWidgetItem
 
+from src.assembler import AssemblyValidationError
+from src.processors.processor_engine import ProcessorEngine
 from src.processors import (
     SingleCycleEngine,
     MultiCycleEngine,
     PipelineForwardingEngine,
     PipelineStallEngine,
+)
+
+
+MAX_EXECUTION_CYCLES = 100000
+CYCLE_LIMIT_MESSAGE = (
+    "Execution stopped because the maximum cycle limit was reached. "
+    "The program may contain an infinite loop."
 )
 
 
@@ -20,28 +29,29 @@ class ProcessorSimulationMixin:
 
     def step_execution(self):
 
-        if self.engine is None:
-            self.load_program_into_engine()
+        if not self._ensure_program_ready():
+            return
 
-        if not self.engine.program_loaded:
+        if self.running and self._continuous_cycle_count >= MAX_EXECUTION_CYCLES:
+            self._stop_for_cycle_limit()
+            return
 
-            self.engine.load_program(
-                self.editor.toPlainText()
-            )
-
-            self.engine.program_loaded = True
-
-        executed = self.engine.step()
+        try:
+            executed = self.engine.step()
+        except ValueError as exc:
+            self._show_friendly_execution_error(exc)
+            return
 
         if not executed:
 
             self.timer.stop()
+            self.running = False
 
             if self.hazard_box.count() == 0 or \
                 self.hazard_box.item(self.hazard_box.count()-1).text() != "Programa finalizado":
                     self.hazard_box.addItem("Programa finalizado")
 
-            # Registrar ejecucion completa en el historial
+            # Registrar ejecucion completa en el historial.
             snapshot = self.engine.get_snapshot()
             self.main_window.add_history(
                 self._build_history_entry(snapshot)
@@ -55,7 +65,7 @@ class ProcessorSimulationMixin:
         print("FB:", getattr(snapshot, "forward_b", None))
         self.hazard_box.clear()
 
-        # Actualizar pipeline
+        # Actualizar pipeline.
         if (
             hasattr(snapshot, "pipeline")
             and snapshot.pipeline
@@ -66,41 +76,51 @@ class ProcessorSimulationMixin:
 
         self.update_pipeline_state(snapshot)
 
-        # Actualizar métricas
+        # Actualizar metricas.
         self.update_metrics(snapshot)
 
-        # Actualizar registros
+        # Actualizar registros.
         self.update_registers(snapshot)
 
-        # Actualizar memoria
+        # Actualizar memoria.
         self.update_memory(snapshot)
 
         self.update_datapath(snapshot)
         self.update_editor_execution_line(snapshot)
 
+        if self.running:
+            self._continuous_cycle_count += 1
+
+            if self._continuous_cycle_count >= MAX_EXECUTION_CYCLES:
+                self._stop_for_cycle_limit()
+
     # RUN
     def run_execution(self):
 
-        if self.engine is None:
-            self.load_program_into_engine()
-        
-        if not self.engine.program_loaded:
-
-            self.engine.load_program(
-                self.editor.toPlainText()
-            )
-
-            self.engine.program_loaded = True
+        if not self._ensure_program_ready():
+            return
 
         self.running = True
+        self._continuous_cycle_count = 0
         mode = self.main_window.mode.currentText()
 
-        # Ejecutar un ciclo cada 400 ms
+        # Ejecutar un ciclo cada 400 ms o correr completo con limite.
         if mode == "Completo":
 
-            while self.engine.step():
+            limit_reached = False
+
+            while self._continuous_cycle_count < MAX_EXECUTION_CYCLES:
+                try:
+                    executed = self.engine.step()
+                except ValueError as exc:
+                    self._show_friendly_execution_error(exc)
+                    return
+
+                if not executed:
+                    break
 
                 snapshot = self.engine.get_snapshot()
+                self._continuous_cycle_count += 1
 
                 if (
                     hasattr(snapshot, "pipeline")
@@ -108,21 +128,38 @@ class ProcessorSimulationMixin:
                 ):
                     self.pipeline_data = snapshot.pipeline
 
+                # Mantiene respirando la UI sin usar sleeps bloqueantes.
+                if self._continuous_cycle_count % 200 == 0:
+                    QApplication.processEvents()
+
+                    if not self.running:
+                        break
+
+            else:
+                limit_reached = True
+
             snapshot = self.engine.get_snapshot()
             self.update_pipeline_table()
             self.pipeline.setRowCount(len(self.pipeline_data))
             self.update_metrics(snapshot)
             self.update_registers(snapshot)
             self.update_memory(snapshot)
-            self.hazard_box.addItem(
-                "Ejecución completa finalizada"
-            )
+
+            if limit_reached:
+                self._mark_cycle_limit_reached()
+                self._add_status_message(CYCLE_LIMIT_MESSAGE)
+            else:
+                self.hazard_box.addItem(
+                    "Ejecucion completa finalizada"
+                )
+
             self.main_window.add_history(
                 self._build_history_entry(snapshot)
             )
             self.update_pipeline_state(snapshot)
             self.update_datapath(snapshot)
 
+            self.running = False
             QApplication.processEvents()
         else:
             self.timer.start(400)
@@ -133,6 +170,7 @@ class ProcessorSimulationMixin:
         self.timer.stop()
 
         self.running = False
+        self._continuous_cycle_count = 0
 
         self.current_cycle = 0
 
@@ -170,9 +208,14 @@ class ProcessorSimulationMixin:
 
         self.create_engine()
 
-        self.engine.load_program(
-            self.editor.toPlainText()
-        )
+        try:
+            self.engine.load_program(
+                self.editor.toPlainText()
+            )
+            self.engine.program_loaded = True
+        except (AssemblyValidationError, ValueError) as exc:
+            self.engine.program_loaded = False
+            self._show_friendly_execution_error(exc)
 
         self.datapath_widget.set_active_blocks([])
         self.clear_editor_execution_line()
@@ -189,6 +232,7 @@ class ProcessorSimulationMixin:
     def stop_execution(self):
 
         self.running = False
+        self._continuous_cycle_count = 0
         self.timer.stop()
 
     # SNAPSHOT
@@ -265,6 +309,7 @@ class ProcessorSimulationMixin:
             self.engine = PipelineStallEngine()
 
         self.engine.program_loaded = False
+        self._continuous_cycle_count = 0
     
     # CARGAR PROGRAMA EN ENGINE
     def load_program_into_engine(self):
@@ -276,6 +321,70 @@ class ProcessorSimulationMixin:
         self.engine.load_program(source_code)
 
         self.running = False
+        self._continuous_cycle_count = 0
+
+    # VALIDACION Y ERRORES
+    def _ensure_program_ready(self) -> bool:
+        source_code = self.editor.toPlainText()
+
+        try:
+            # Valida antes de crear/cargar motores para no alterar estado si el codigo esta malo.
+            ProcessorEngine.validate_program(source_code)
+        except (AssemblyValidationError, ValueError) as exc:
+            self._show_friendly_execution_error(exc)
+            return False
+
+        if self.engine is None:
+            self.create_engine()
+
+        if not self.engine.program_loaded:
+            try:
+                self.engine.load_program(source_code)
+                self.engine.program_loaded = True
+            except (AssemblyValidationError, ValueError) as exc:
+                self._show_friendly_execution_error(exc)
+                return False
+
+        return True
+
+    def _show_friendly_execution_error(self, error) -> None:
+        self.running = False
+        self.timer.stop()
+        self._continuous_cycle_count = 0
+        self._add_status_message(self._format_execution_error(error))
+
+    def _format_execution_error(self, error) -> str:
+        if isinstance(error, AssemblyValidationError):
+            details = []
+
+            if error.line_number is not None:
+                details.append(f"Linea {error.line_number}")
+
+            if error.instruction:
+                details.append(f"Instruccion: {error.instruction}")
+
+            if error.token:
+                details.append(f"Token: {error.token}")
+
+            details.append(f"Detalle: {error.description}")
+            return "Codigo invalido. " + ". ".join(details)
+
+        return f"No se pudo ejecutar el programa: {error}"
+
+    def _add_status_message(self, message: str) -> None:
+        if hasattr(self, "hazard_box"):
+            self.hazard_box.clear()
+            self.hazard_box.addItem(message)
+
+    def _stop_for_cycle_limit(self) -> None:
+        self.running = False
+        self.timer.stop()
+        self._mark_cycle_limit_reached()
+        self._add_status_message(CYCLE_LIMIT_MESSAGE)
+
+    def _mark_cycle_limit_reached(self) -> None:
+        if self.engine is not None and hasattr(self.engine.metrics, "stopped_by_cycle_limit"):
+            self.engine.metrics.stopped_by_cycle_limit = True
 
     # CONSTRUIR ENTRADA DE HISTORIAL
     def _build_history_entry(self, snapshot) -> dict:
@@ -311,4 +420,3 @@ class ProcessorSimulationMixin:
             "cpi":          cpi,
             "total_time":   total_time,
         }
-

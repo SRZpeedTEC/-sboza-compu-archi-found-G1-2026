@@ -90,6 +90,14 @@ class ProcessorRenderingMixin:
         except (TypeError, ValueError):
             return None
 
+        if hasattr(self, "engine") and self.engine is not None:
+            line_numbers = getattr(self.engine, "instruction_line_numbers", {})
+            original_line = line_numbers.get(instruction_index)
+
+            if original_line is not None:
+                # QTextDocument usa indices de bloque desde cero.
+                return original_line - 1
+
         current_index = 0
 
         for line_number, original_line in enumerate(

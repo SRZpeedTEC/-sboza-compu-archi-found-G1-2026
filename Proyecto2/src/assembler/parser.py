@@ -1,4 +1,30 @@
 import re
+from dataclasses import dataclass
+
+
+@dataclass
+class AssemblyValidationError(ValueError):
+    """Error legible para mostrar problemas del codigo en la interfaz."""
+
+    description: str
+    line_number: int | None = None
+    instruction: str | None = None
+    token: str | None = None
+
+    def __str__(self) -> str:
+        parts = []
+
+        if self.line_number is not None:
+            parts.append(f"Linea {self.line_number}")
+
+        if self.instruction:
+            parts.append(f"Instruccion: {self.instruction}")
+
+        if self.token:
+            parts.append(f"Token: {self.token}")
+
+        parts.append(f"Detalle: {self.description}")
+        return ". ".join(parts)
 
 
 class Parser:
@@ -14,11 +40,21 @@ class Parser:
 
     # Obtiene una lista de instrucciones limpias (sin comentarios ni etiquetas) y un diccionario de etiquetas con sus direcciones.
     def parse_text(self, code: str) -> tuple[list[str], dict[str, int]]:
+        instructions, labels, _ = self.parse_text_with_line_numbers(code)
+        return instructions, labels
+
+
+    # Variante usada por la UI y los motores para conservar el numero de linea original de cada instruccion.
+    def parse_text_with_line_numbers(
+        self,
+        code: str
+    ) -> tuple[list[str], dict[str, int], dict[int, int]]:
         if not isinstance(code, str):
             raise ValueError("El parser espera codigo fuente como texto.")
 
         instructions: list[str] = []
         labels: dict[str, int] = {}
+        line_numbers: dict[int, int] = {}
 
         for line_number, original_line in enumerate(code.splitlines(), start=1):
             
@@ -32,9 +68,11 @@ class Parser:
             if not line:
                 continue
 
+            instruction_index = len(instructions)
             instructions.append(self._normalize_instruction(line))
+            line_numbers[instruction_index] = line_number
 
-        return instructions, labels
+        return instructions, labels, line_numbers
     
 
     # Funcion auxiliar para remover comentarios. Asume que el caracter '#' inicia un comentario, y todo lo que sigue es ignorado.
@@ -76,11 +114,22 @@ class Parser:
     def _validate_label(self, label_name: str, line_number: int, labels: dict[str, int]) -> None:
 
         if not label_name:
-            raise ValueError(f"Linea {line_number}: etiqueta vacia.")
+            raise AssemblyValidationError(
+                "Etiqueta vacia.",
+                line_number=line_number,
+            )
         if not self._LABEL_PATTERN.fullmatch(label_name):
-            raise ValueError(f"Linea {line_number}: etiqueta invalida: {label_name!r}.")
+            raise AssemblyValidationError(
+                "Etiqueta invalida.",
+                line_number=line_number,
+                token=label_name,
+            )
         if label_name in labels:
-            raise ValueError(f"Linea {line_number}: etiqueta duplicada: {label_name!r}.")
+            raise AssemblyValidationError(
+                "Etiqueta duplicada.",
+                line_number=line_number,
+                token=label_name,
+            )
         
            
     """Normaliza la instruccion: convierte a minusculas, reemplaza comas por espacios, y colapsa espacios multiples. 

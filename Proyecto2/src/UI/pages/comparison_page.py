@@ -653,7 +653,7 @@ class ComparisonPage(QWidget):
         )
 
         self.metric_labels_a["Estado"].setText(
-            f"PC {self.proc_a.metric_pc.value_label.text()}"
+            self._processor_status_text(self.proc_a)
         )
 
         # METRICAS B
@@ -670,7 +670,7 @@ class ComparisonPage(QWidget):
         )
 
         self.metric_labels_b["Estado"].setText(
-            f"PC {self.proc_b.metric_pc.value_label.text()}"
+            self._processor_status_text(self.proc_b)
         )
 
         # COMPARACION FINAL
@@ -845,3 +845,15 @@ class ComparisonPage(QWidget):
             multi_cycle_view.set_snapshot(snapshot)
         else:
             pipeline_view.set_snapshot(snapshot)
+
+    def _processor_status_text(self, processor) -> str:
+        metrics = (
+            getattr(processor.engine, "metrics", None)
+            if processor.engine is not None
+            else None
+        )
+
+        if metrics is not None and getattr(metrics, "stopped_by_cycle_limit", False):
+            return "Limite de ciclos"
+
+        return f"PC {processor.metric_pc.value_label.text()}"

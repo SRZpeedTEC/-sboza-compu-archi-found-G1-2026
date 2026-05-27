@@ -17,6 +17,7 @@ class ProcessorPage(ProcessorSimulationMixin, ProcessorRenderingMixin, QWidget):
         super().__init__()
         self.current_cycle = 0
         self.running = False
+        self._continuous_cycle_count = 0
         self.processor_name = name
 
         self.snapshots = []

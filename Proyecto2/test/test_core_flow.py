@@ -8,8 +8,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.assembler import Parser
+from src.assembler import AssemblyValidationError, Parser
 from src.core import ControlUnit, Decoder, InstructionMemory, Memory, RegisterBank
+from src.processors.single_cycle import SingleCycleEngine
 
 
 class CoreFlowTests(unittest.TestCase):
@@ -60,6 +61,34 @@ class CoreFlowTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "Operando de memoria invalido"):
             decoder.decode("lw x1 0x2")
+
+    def test_engine_validation_reports_original_source_line(self) -> None:
+        code = "addi x1, x0, 1\n\nadd x32, x1, x2"
+
+        with self.assertRaises(AssemblyValidationError) as ctx:
+            SingleCycleEngine.validate_program(code)
+
+        self.assertEqual(ctx.exception.line_number, 3)
+        self.assertEqual(ctx.exception.token, "x32")
+
+    def test_load_program_keeps_previous_state_when_validation_fails(self) -> None:
+        engine = SingleCycleEngine()
+        engine.load_program("addi x1, x0, 1")
+        before = (
+            engine.pc,
+            engine.register_bank.read("x1"),
+            engine.instruction_memory.get_snapshot(),
+        )
+
+        with self.assertRaises(AssemblyValidationError):
+            engine.load_program("addi x1, x0, 1\nadd x32, x1, x2")
+
+        after = (
+            engine.pc,
+            engine.register_bank.read("x1"),
+            engine.instruction_memory.get_snapshot(),
+        )
+        self.assertEqual(after, before)
 
     def test_control_unit_generates_signals(self) -> None:
         instruction = Decoder().decode("sw x3 0(x4)")
