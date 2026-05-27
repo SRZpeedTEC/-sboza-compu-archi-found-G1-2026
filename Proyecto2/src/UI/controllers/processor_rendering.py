@@ -389,10 +389,13 @@ class ProcessorRenderingMixin:
         cpi = 0
         if instructions > 0:
             cpi = round(cycles / instructions, 2)
+        ipc = round(metrics.get("ipc", 0), 2)
 
         self.metric_cycles.set_value(cycles)
         self.metric_instructions.set_value(instructions)
         self.metric_cpi.set_value(cpi)
+        if hasattr(self, "metric_ipc"):
+            self.metric_ipc.set_value(ipc)
 
         # "Tiempo" = periodo de un ciclo de reloj (ruta critica del procesador)
         self.metric_time.set_value(fmt_time(clock_ps))

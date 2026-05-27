@@ -426,6 +426,12 @@ class ProcessorPage(ProcessorSimulationMixin, ProcessorRenderingMixin, QWidget):
             "#fff1d9"
         )
 
+        self.metric_ipc = MetricCard(
+            "IPC",
+            "0",
+            "#f0ecff"
+        )
+
         self.metric_time = MetricCard(
             "Tiempo",
             "0 ns",
@@ -447,6 +453,7 @@ class ProcessorPage(ProcessorSimulationMixin, ProcessorRenderingMixin, QWidget):
         metrics_layout.addWidget(self.metric_cycles)
         metrics_layout.addWidget(self.metric_instructions)
         metrics_layout.addWidget(self.metric_cpi)
+        metrics_layout.addWidget(self.metric_ipc)
         metrics_layout.addWidget(self.metric_time)
         metrics_layout.addWidget(self.metric_pc)
         metrics_layout.addWidget(self.metric_total)

@@ -15,35 +15,42 @@ class ComparisonPage(QWidget):
         self.proc_b = proc_b
 
         main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(12, 12, 12, 12)
+        main_layout.setContentsMargins(6, 6, 6, 6)
+        main_layout.setAlignment(Qt.AlignTop)
 
         # CARD PRINCIPAL
         main_card = QFrame()
         main_card.setObjectName("mainCard")
+        main_card.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Maximum
+        )
 
         card_layout = QVBoxLayout()
-        card_layout.setContentsMargins(22, 16, 22, 16)
-        card_layout.setSpacing(14)
+        card_layout.setContentsMargins(16, 10, 16, 14)
+        card_layout.setSpacing(10)
+        card_layout.setAlignment(Qt.AlignTop)
 
         # TITULO
         title = QLabel("Comparación de Arquitecturas")
-        title.setAlignment(Qt.AlignCenter)
+        title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         title.setStyleSheet("""
-            font-size: 20pt;
+            font-size: 16pt;
             font-weight: bold;
             color: #7078d6;
 
             padding: 0px;
             margin: 0px;
-            min-height: 32px;
-            max-height: 32px;
+            min-height: 26px;
+            max-height: 26px;
         """)
 
         card_layout.addWidget(title)
 
         # BOTONES GLOBALES DE COMPARACION
         compare_buttons = QHBoxLayout()
+        compare_buttons.setSpacing(10)
 
         self.step_btn = QPushButton("▶ Step")
         self.run_btn = QPushButton("⏵ Run")
@@ -66,10 +73,14 @@ class ComparisonPage(QWidget):
             background-color: #ff7fa8;
         """)
 
-        compare_buttons.addWidget(self.step_btn)
-        compare_buttons.addWidget(self.run_btn)
-        compare_buttons.addWidget(self.reset_btn)
-        compare_buttons.addWidget(self.stop_btn)
+        for button in (
+            self.step_btn,
+            self.run_btn,
+            self.reset_btn,
+            self.stop_btn
+        ):
+            button.setFixedHeight(38)
+            compare_buttons.addWidget(button)
 
         card_layout.addLayout(compare_buttons)
 
@@ -100,30 +111,30 @@ class ComparisonPage(QWidget):
         left_card.setStyleSheet("""
             background-color: #fff5fa;
             border: 2px solid #ffd9ea;
-            border-radius: 34px;
+            border-radius: 24px;
         """)
 
         left_layout = QVBoxLayout()
-        left_layout.setContentsMargins(24, 24, 24, 24)
-        left_layout.setSpacing(20)
+        left_layout.setContentsMargins(16, 16, 16, 16)
+        left_layout.setSpacing(12)
 
         # HEADER
         left_header = QFrame()
 
         left_header.setStyleSheet("""
             background-color: white;
-            border-radius: 24px;
+            border-radius: 18px;
             border: 2px solid #ffe4f0;
         """)
 
         left_header_layout = QVBoxLayout()
-        left_header_layout.setContentsMargins(18, 18, 18, 18)
+        left_header_layout.setContentsMargins(14, 10, 14, 10)
 
         left_title = QLabel("Procesador A")
         left_title.setAlignment(Qt.AlignCenter)
 
         left_title.setStyleSheet("""
-            font-size: 20pt;
+            font-size: 16pt;
             font-weight: bold;
             color: #ff5ca8;
         """)
@@ -150,13 +161,13 @@ class ComparisonPage(QWidget):
 
         datapath_a.setStyleSheet("""
             background-color: white;
-            border-radius: 28px;
+            border-radius: 20px;
             border: 2px solid #ffe4f0;
         """)
 
         datapath_layout_a = QVBoxLayout()
-        datapath_layout_a.setContentsMargins(18, 18, 18, 18)
-        datapath_layout_a.setSpacing(16)
+        datapath_layout_a.setContentsMargins(14, 12, 14, 12)
+        datapath_layout_a.setSpacing(10)
 
         datapath_title_a = QLabel("Vista del Datapath")
         datapath_title_a.setAlignment(Qt.AlignCenter)
@@ -187,13 +198,13 @@ class ComparisonPage(QWidget):
 
         metrics_a.setStyleSheet("""
             background-color: white;
-            border-radius: 28px;
+            border-radius: 20px;
             border: 2px solid #ffe4f0;
         """)
 
         metrics_layout_a = QVBoxLayout()
-        metrics_layout_a.setContentsMargins(20, 20, 20, 20)
-        metrics_layout_a.setSpacing(14)
+        metrics_layout_a.setContentsMargins(14, 12, 14, 12)
+        metrics_layout_a.setSpacing(8)
 
         metrics_title_a = QLabel("Resumen")
         metrics_title_a.setAlignment(Qt.AlignCenter)
@@ -210,10 +221,12 @@ class ComparisonPage(QWidget):
         self.metric_labels_a = {}
 
         metric_names = [
-            "CPI",
+            "Estado",
             "Ciclos",
+            "Instrucciones",
+            "CPI",
+            "IPC",
             "Tiempo",
-            "Estado"
         ]
 
         for name in metric_names:
@@ -227,7 +240,7 @@ class ComparisonPage(QWidget):
             """)
 
             row_layout = QHBoxLayout()
-            row_layout.setContentsMargins(14, 10, 14, 10)
+            row_layout.setContentsMargins(12, 7, 12, 7)
 
             left = QLabel(name)
 
@@ -264,12 +277,12 @@ class ComparisonPage(QWidget):
 
         hazards_a.setStyleSheet("""
             background-color: white;
-            border-radius: 22px;
+            border-radius: 18px;
             border: 2px solid #ffe4f0;
         """)
 
         hazards_layout_a = QVBoxLayout()
-        hazards_layout_a.setContentsMargins(14, 12, 14, 12)
+        hazards_layout_a.setContentsMargins(12, 8, 12, 8)
         hazards_layout_a.setSpacing(6)
 
         hazards_title_a = QLabel("Hazards Detectados")
@@ -327,30 +340,30 @@ class ComparisonPage(QWidget):
         right_card.setStyleSheet("""
             background-color: #f3fcff;
             border: 2px solid #d6f1f7;
-            border-radius: 34px;
+            border-radius: 24px;
         """)
 
         right_layout = QVBoxLayout()
-        right_layout.setContentsMargins(24, 24, 24, 24)
-        right_layout.setSpacing(20)
+        right_layout.setContentsMargins(16, 16, 16, 16)
+        right_layout.setSpacing(12)
 
         # HEADER
         right_header = QFrame()
 
         right_header.setStyleSheet("""
             background-color: white;
-            border-radius: 24px;
+            border-radius: 18px;
             border: 2px solid #e1f7fb;
         """)
 
         right_header_layout = QVBoxLayout()
-        right_header_layout.setContentsMargins(18, 18, 18, 18)
+        right_header_layout.setContentsMargins(14, 10, 14, 10)
 
         right_title = QLabel("Procesador B")
         right_title.setAlignment(Qt.AlignCenter)
 
         right_title.setStyleSheet("""
-            font-size: 20pt;
+            font-size: 16pt;
             font-weight: bold;
             color: #25bdb0;
         """)
@@ -377,13 +390,13 @@ class ComparisonPage(QWidget):
 
         datapath_b.setStyleSheet("""
             background-color: white;
-            border-radius: 28px;
+            border-radius: 20px;
             border: 2px solid #dff5f2;
         """)
 
         datapath_layout_b = QVBoxLayout()
-        datapath_layout_b.setContentsMargins(18, 18, 18, 18)
-        datapath_layout_b.setSpacing(16)
+        datapath_layout_b.setContentsMargins(14, 12, 14, 12)
+        datapath_layout_b.setSpacing(10)
 
         datapath_title_b = QLabel("Vista del Datapath")
         datapath_title_b.setAlignment(Qt.AlignCenter)
@@ -414,13 +427,13 @@ class ComparisonPage(QWidget):
 
         metrics_b.setStyleSheet("""
             background-color: white;
-            border-radius: 28px;
+            border-radius: 20px;
             border: 2px solid #dff5f2;
         """)
 
         metrics_layout_b = QVBoxLayout()
-        metrics_layout_b.setContentsMargins(20, 20, 20, 20)
-        metrics_layout_b.setSpacing(14)
+        metrics_layout_b.setContentsMargins(14, 12, 14, 12)
+        metrics_layout_b.setSpacing(8)
 
         metrics_title_b = QLabel("Resumen")
         metrics_title_b.setAlignment(Qt.AlignCenter)
@@ -437,10 +450,12 @@ class ComparisonPage(QWidget):
         self.metric_labels_b = {}
 
         metric_names = [
-            "CPI",
+            "Estado",
             "Ciclos",
+            "Instrucciones",
+            "CPI",
+            "IPC",
             "Tiempo",
-            "Estado"
         ]
 
         for name in metric_names:
@@ -454,7 +469,7 @@ class ComparisonPage(QWidget):
             """)
 
             row_layout = QHBoxLayout()
-            row_layout.setContentsMargins(14, 10, 14, 10)
+            row_layout.setContentsMargins(12, 7, 12, 7)
 
             left = QLabel(name)
 
@@ -491,12 +506,12 @@ class ComparisonPage(QWidget):
 
         hazards_b.setStyleSheet("""
             background-color: white;
-            border-radius: 22px;
+            border-radius: 18px;
             border: 2px solid #dff5f2;
         """)
 
         hazards_layout_b = QVBoxLayout()
-        hazards_layout_b.setContentsMargins(14, 12, 14, 12)
+        hazards_layout_b.setContentsMargins(12, 8, 12, 8)
         hazards_layout_b.setSpacing(6)
 
         hazards_title_b = QLabel("Hazards Detectados")
@@ -554,63 +569,6 @@ class ComparisonPage(QWidget):
 
         card_layout.addLayout(compare_layout)
 
-        # RESULTADO FINAL
-        summary = QFrame()
-        
-        summary.setStyleSheet("""
-            background-color: #f7f5ff;
-            border: 2px solid #e7e1ff;
-            border-radius: 30px;
-        """)
-
-        summary_layout = QVBoxLayout()
-        summary_layout.setContentsMargins(22, 22, 22, 22)
-        summary_layout.setSpacing(18)
-
-        summary_title = QLabel(
-            "Resultado de la Comparación"
-        )
-
-        summary_title.setAlignment(Qt.AlignCenter)
-
-        summary_title.setStyleSheet("""
-            font-size: 14pt;
-            font-weight: bold;
-            color: #7b69dc;
-
-            padding: 0px;
-            margin: 0px;
-
-            min-height: 24px;
-            max-height: 24px;
-        """)
-
-        self.summary_text = QLabel()
-
-        self.summary_text.setAlignment(Qt.AlignCenter)
-        self.summary_text.setWordWrap(True)
-        self.summary_text.setMinimumHeight(120)
-
-        self.summary_text.setStyleSheet("""
-            font-size: 11pt;
-            color: #69739c;
-            font-weight: bold;
-
-            padding-top: 12px;
-            padding-bottom: 12px;
-            padding-left: 8px;
-            padding-right: 8px;
-
-            margin: 0px;
-        """)
-
-        summary_layout.addWidget(summary_title)
-        summary_layout.addWidget(self.summary_text)
-
-        summary.setLayout(summary_layout)
-
-        card_layout.addWidget(summary)
-
         main_card.setLayout(card_layout)
 
         main_layout.addWidget(main_card)
@@ -639,122 +597,15 @@ class ComparisonPage(QWidget):
             self.proc_b.selector.currentText()
         )
 
-        # METRICAS A
-        self.metric_labels_a["CPI"].setText(
-            self.proc_a.metric_cpi.value_label.text()
+        # METRICAS
+        self._update_metric_labels(
+            self.proc_a,
+            self.metric_labels_a
         )
 
-        self.metric_labels_a["Ciclos"].setText(
-            self.proc_a.metric_cycles.value_label.text()
-        )
-
-        self.metric_labels_a["Tiempo"].setText(
-            self.proc_a.metric_total.value_label.text()
-        )
-
-        self.metric_labels_a["Estado"].setText(
-            self._processor_status_text(self.proc_a)
-        )
-
-        # METRICAS B
-        self.metric_labels_b["CPI"].setText(
-            self.proc_b.metric_cpi.value_label.text()
-        )
-
-        self.metric_labels_b["Ciclos"].setText(
-            self.proc_b.metric_cycles.value_label.text()
-        )
-
-        self.metric_labels_b["Tiempo"].setText(
-            self.proc_b.metric_total.value_label.text()
-        )
-
-        self.metric_labels_b["Estado"].setText(
-            self._processor_status_text(self.proc_b)
-        )
-
-        # COMPARACION FINAL
-        cpi_a = float(
-            self.proc_a.metric_cpi.value_label.text()
-        )
-
-        cpi_b = float(
-            self.proc_b.metric_cpi.value_label.text()
-        )
-
-        cycles_a = int(
-            self.proc_a.metric_cycles.value_label.text()
-        )
-
-        cycles_b = int(
-            self.proc_b.metric_cycles.value_label.text()
-        )
-
-        # GANADOR
-        if cpi_a < cpi_b:
-
-            result = (
-                "Procesador A obtuvo el menor CPI.\n\n"
-
-                "Esto significa que necesitó menos ciclos "
-                "por instrucción para ejecutar el programa.\n\n"
-
-                "El procesador A mostró una mayor eficiencia "
-                "promedio durante la ejecución."
-            )
-
-        elif cpi_b < cpi_a:
-
-            result = (
-                "Procesador B obtuvo el menor CPI.\n\n"
-
-                "Esto significa que necesitó menos ciclos "
-                "por instrucción para ejecutar el programa.\n\n"
-
-                "El procesador B mostró una mayor eficiencia "
-                "promedio durante la ejecución."
-            )
-
-        else:
-
-            result = (
-                "Ambos procesadores obtuvieron el mismo CPI.\n\n"
-
-                "Esto indica que el costo promedio "
-                "por instrucción fue equivalente.\n\n"
-
-                "Sin embargo, el rendimiento total todavía "
-                "puede variar dependiendo de la cantidad "
-                "de ciclos y del tiempo de ejecución."
-            )
-
-        # CICLOS
-        if cycles_a < cycles_b:
-
-            result += (
-                "\n\nAdemás, el Procesador A necesitó "
-                "menos ciclos totales para finalizar "
-                "la ejecución."
-            )
-
-        elif cycles_b < cycles_a:
-
-            result += (
-                "\n\nAdemás, el Procesador B necesitó "
-                "menos ciclos totales para finalizar "
-                "la ejecución."
-            )
-
-        else:
-
-            result += (
-                "\n\nAmbos procesadores utilizaron "
-                "la misma cantidad de ciclos."
-            )
-        self.summary_text.setText(result)
-        self.summary_text.setSizePolicy(
-            QSizePolicy.Expanding,
-            QSizePolicy.Preferred
+        self._update_metric_labels(
+            self.proc_b,
+            self.metric_labels_b
         )
 
         self._update_datapath_preview(
@@ -845,6 +696,27 @@ class ComparisonPage(QWidget):
             multi_cycle_view.set_snapshot(snapshot)
         else:
             pipeline_view.set_snapshot(snapshot)
+
+    def _update_metric_labels(self, processor, labels) -> None:
+        labels["Estado"].setText(
+            self._processor_status_text(processor)
+        )
+        labels["Ciclos"].setText(
+            processor.metric_cycles.value_label.text()
+        )
+        labels["Instrucciones"].setText(
+            processor.metric_instructions.value_label.text()
+        )
+        labels["CPI"].setText(
+            processor.metric_cpi.value_label.text()
+        )
+        labels["IPC"].setText(
+            processor.metric_ipc.value_label.text()
+            if hasattr(processor, "metric_ipc") else "0"
+        )
+        labels["Tiempo"].setText(
+            processor.metric_total.value_label.text()
+        )
 
     def _processor_status_text(self, processor) -> str:
         metrics = (

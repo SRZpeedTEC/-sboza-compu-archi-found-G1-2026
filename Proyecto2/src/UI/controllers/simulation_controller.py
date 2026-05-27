@@ -183,6 +183,8 @@ class ProcessorSimulationMixin:
         self.metric_cycles.set_value("0")
         self.metric_instructions.set_value("0")
         self.metric_cpi.set_value("0")
+        if hasattr(self, "metric_ipc"):
+            self.metric_ipc.set_value("0")
         self.metric_time.set_value("0 ns")
         self.metric_pc.set_value("0x0000")
         self.metric_total.set_value("0 ns")
@@ -261,6 +263,10 @@ class ProcessorSimulationMixin:
 
                 "cpi":
                 self.metric_cpi.value_label.text(),
+
+                "ipc":
+                self.metric_ipc.value_label.text()
+                if hasattr(self, "metric_ipc") else "0",
 
                 "time":
                 self.metric_time.value_label.text(),
@@ -416,6 +422,7 @@ class ProcessorSimulationMixin:
         instructions = m.get("instructions", 0)
         total_ps     = m.get("time_ps", 0)   # suma de rutas criticas acumuladas
         cpi          = round(cycles / instructions, 2) if instructions > 0 else 0
+        ipc          = round(m.get("ipc", 0), 2)
         total_time   = fmt_time(total_ps)
 
         return {
@@ -424,5 +431,6 @@ class ProcessorSimulationMixin:
             "cycles":       cycles,
             "instructions": instructions,
             "cpi":          cpi,
+            "ipc":          ipc,
             "total_time":   total_time,
         }
