@@ -85,6 +85,7 @@ def stage_execute(id_ex: ID_EX, alu) -> tuple[EX_MEM, bool, int]:
             alu_result=result,
             b=id_ex.b,
             rd=id_ex.rd,
+            pc=id_ex.pc,
         ),
         branch_taken,
         branch_target,
@@ -112,6 +113,7 @@ def stage_memory(ex_mem: EX_MEM, memory) -> MEM_WB:
         alu_result=ex_mem.alu_result,
         mem_data=mem_data,
         rd=ex_mem.rd,
+        pc=ex_mem.pc,
     )
 
 

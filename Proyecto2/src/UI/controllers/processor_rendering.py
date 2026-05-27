@@ -51,10 +51,7 @@ class ProcessorRenderingMixin:
         if not hasattr(self, "editor"):
             return
 
-        trace = getattr(snapshot, "single_cycle_trace", {}) or {}
-        pc = trace.get("pc")
-        if pc is None:
-            pc = getattr(snapshot, "multi_cycle_old_pc", None)
+        pc = self._active_pc_for_editor(snapshot)
         line_number = self._source_line_for_pc(pc)
 
         if line_number is None:
@@ -63,6 +60,10 @@ class ProcessorRenderingMixin:
 
         selection = QTextEdit.ExtraSelection()
         block = self.editor.document().findBlockByNumber(line_number)
+        if not block.isValid():
+            self.clear_editor_execution_line()
+            return
+
         selection.cursor = QTextCursor(block)
         selection.cursor.clearSelection()
 
@@ -81,6 +82,35 @@ class ProcessorRenderingMixin:
         if hasattr(self, "editor"):
             self.editor.setExtraSelections([])
 
+    def _active_pc_for_editor(self, snapshot):
+        if snapshot is None:
+            return None
+
+        trace = getattr(snapshot, "single_cycle_trace", {}) or {}
+        pc = trace.get("pc")
+
+        if pc is not None:
+            return pc
+
+        pc = getattr(snapshot, "multi_cycle_old_pc", None)
+
+        if pc is not None and getattr(snapshot, "ir", None):
+            return pc
+
+        # En pipeline pueden existir varias instrucciones activas. Se usa IF
+        # como politica visual principal; si IF esta vacio, se conserva una
+        # etapa posterior para que el usuario pueda seguir la instruccion activa.
+        for register_name in ("if_id", "id_ex", "ex_mem", "mem_wb"):
+            pipe_reg = getattr(snapshot, register_name, None)
+
+            if pipe_reg is None:
+                continue
+
+            if getattr(pipe_reg, "instruction", None) is not None:
+                return getattr(pipe_reg, "pc", None)
+
+        return None
+
     def _source_line_for_pc(self, pc):
         if pc is None:
             return None
@@ -88,6 +118,9 @@ class ProcessorRenderingMixin:
         try:
             instruction_index = int(pc) // 4
         except (TypeError, ValueError):
+            return None
+
+        if instruction_index < 0:
             return None
 
         if hasattr(self, "engine") and self.engine is not None:

@@ -56,6 +56,7 @@ class ProcessorSimulationMixin:
             self.main_window.add_history(
                 self._build_history_entry(snapshot)
             )
+            self.clear_editor_execution_line()
             return
 
         snapshot = self.engine.get_snapshot()
@@ -130,6 +131,7 @@ class ProcessorSimulationMixin:
 
                 # Mantiene respirando la UI sin usar sleeps bloqueantes.
                 if self._continuous_cycle_count % 200 == 0:
+                    self.update_editor_execution_line(snapshot)
                     QApplication.processEvents()
 
                     if not self.running:
@@ -158,6 +160,10 @@ class ProcessorSimulationMixin:
             )
             self.update_pipeline_state(snapshot)
             self.update_datapath(snapshot)
+            if limit_reached:
+                self.update_editor_execution_line(snapshot)
+            else:
+                self.clear_editor_execution_line()
 
             self.running = False
             QApplication.processEvents()
