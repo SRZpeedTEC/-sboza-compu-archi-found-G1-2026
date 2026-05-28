@@ -2,7 +2,7 @@ from dataclasses import replace
 from enum import Enum, auto
 
 from src.assembler import ControlSignals
-from src.core.latency import MULTICYCLE_LATENCY_PS
+from src.core.latency import CLOCK_PERIOD_MULTICYCLE
 from src.processors.processor_engine import ProcessorEngine
 from src.processors.processor_snapshot import ProcessorSnapshot
 
@@ -65,6 +65,7 @@ class MultiCycleEngine(ProcessorEngine):
                 self._do_writeback()
 
         self.metrics.count_cycle()
+        self.metrics.add_time(CLOCK_PERIOD_MULTICYCLE)
         self.processor_snapshot = self.get_snapshot()
         return True
 
@@ -235,7 +236,6 @@ class MultiCycleEngine(ProcessorEngine):
             # Si no se toma, el PC ya apunta a PC+4 desde FETCH.
 
             self.metrics.count_instruction()
-            self.metrics.add_time(MULTICYCLE_LATENCY_PS.get(opcode, 825))
             self._stage = Stage.FETCH
 
     def _do_memory(self) -> None:
@@ -249,7 +249,6 @@ class MultiCycleEngine(ProcessorEngine):
         elif opcode == "sw":
             self.memory.store_word(self._alu_out, self._b)
             self.metrics.count_instruction()
-            self.metrics.add_time(MULTICYCLE_LATENCY_PS.get(opcode, 1100))
             self._stage = Stage.FETCH
 
     def _do_writeback(self) -> None:
@@ -263,5 +262,4 @@ class MultiCycleEngine(ProcessorEngine):
             self.register_bank.write(self._instruction.rd, self._alu_out)
 
         self.metrics.count_instruction()
-        self.metrics.add_time(MULTICYCLE_LATENCY_PS.get(opcode, 1100))
         self._stage = Stage.FETCH

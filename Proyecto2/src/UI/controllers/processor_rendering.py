@@ -512,7 +512,7 @@ class ProcessorRenderingMixin:
 
         cycles       = metrics.get("cycles", 0)
         instructions = metrics.get("instructions", 0)
-        # Tiempo total acumulado instruccion a instruccion (ps)
+        # Tiempo total acumulado como ciclos ejecutados * periodo de reloj.
         total_ps     = metrics.get("time_ps", 0)
 
         cpi = 0
@@ -526,12 +526,12 @@ class ProcessorRenderingMixin:
         if hasattr(self, "metric_ipc"):
             self.metric_ipc.set_value(ipc)
 
-        # "Tiempo" = periodo de un ciclo de reloj (ruta critica del procesador)
+        # "Tiempo" = periodo de un ciclo de reloj.
         self.metric_time.set_value(fmt_time(clock_ps))
 
         self.metric_pc.set_value(hex(snapshot.pc))
 
-        # "Tiempo Total" = suma de rutas criticas de instrucciones completadas
+        # "Tiempo Total" = ciclos ejecutados por periodo de reloj.
         self.metric_total.set_value(fmt_time(total_ps))
     
     # ACTUALIZAR REGISTROS

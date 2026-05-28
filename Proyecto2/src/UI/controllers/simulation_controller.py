@@ -451,7 +451,7 @@ class ProcessorSimulationMixin:
         m = snapshot.metrics.get_metrics()
         cycles       = m.get("cycles", 0)
         instructions = m.get("instructions", 0)
-        total_ps     = m.get("time_ps", 0)   # suma de rutas criticas acumuladas
+        total_ps     = m.get("time_ps", 0)   # ciclos ejecutados * periodo
         cpi_value    = cycles / instructions if instructions > 0 else 0
         ipc_value    = m.get("ipc", 0) if cycles > 0 else 0
         cpi          = f"{cpi_value:.2f}"

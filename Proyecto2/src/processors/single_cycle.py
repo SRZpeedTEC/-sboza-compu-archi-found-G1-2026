@@ -1,4 +1,4 @@
-from src.core.latency import SINGLE_CYCLE_LATENCY_PS
+from src.core.latency import CLOCK_PERIOD_SINGLE_CYCLE
 from src.processors.processor_engine import ProcessorEngine
 
 
@@ -45,14 +45,12 @@ class SingleCycleEngine(ProcessorEngine):
             case "beq" | "bne":
                 self.execute_branch(instruction, control_signal)
 
-        # METRICAS: en uniciclo toda instruccion consume exactamente un ciclo,
-        # pero el tiempo acumulado usa la ruta critica propia del opcode.
+        # METRICAS: en uniciclo cada instruccion consume un ciclo completo.
+        # El ciclo lo fija la instruccion mas lenta, no el opcode ejecutado.
         self.single_cycle_trace["next_pc"] = self.pc
         self.metrics.count_cycle()
         self.metrics.count_instruction()
-        self.metrics.add_time(
-            SINGLE_CYCLE_LATENCY_PS.get(instruction.opcode, 730)
-        )
+        self.metrics.add_time(CLOCK_PERIOD_SINGLE_CYCLE)
         self.processor_snapshot = self.get_snapshot()
         return True
 
