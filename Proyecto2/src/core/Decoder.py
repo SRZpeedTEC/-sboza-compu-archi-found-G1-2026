@@ -11,8 +11,8 @@ class Decoder:
     pertenecen al Parser y a InstructionMemory.
     """
 
-    """ Conjuntos de operaciones soportadas, organizados por tipo. Esto facilita la decodificacion y la 
-    validacion de formato. Si se quisiera agregar mas instrucciones, se puede ampliar """
+    # Las operaciones se agrupan por formato para validar cantidad y tipo de
+    # operandos antes de construir Instruction.
     R_TYPE_OPS = {"add", "sub", "and", "or", "xor"}
     I_TYPE_OPS = {"addi"}
     LOAD_OPS = {"lw"}
@@ -31,11 +31,12 @@ class Decoder:
     def __init__(self, labels: dict[str, int] | None = None):
         self.labels = labels or {}
 
-    """ Decodifica una linea de instruccion limpia (sin comentarios ni etiquetas) en un objeto Instruction. 
-    Si la linea es None, devuelve None. Si la linea no es un string valido o no corresponde a una instruccion 
-    soportada, lanza ValueError con mensaje claro para la UI. """
-
     def decode(self, instruction_line : str) -> Instruction:
+        """Decodifica una instruccion limpia en un objeto Instruction.
+
+        El Parser ya elimino comentarios y labels; aqui se valida que el opcode
+        exista y que cada operando tenga el formato esperado.
+        """
         
         if not isinstance(instruction_line, str) or not instruction_line.strip():
             raise ValueError("No se puede decodificar una instruccion vacia.")
@@ -60,10 +61,8 @@ class Decoder:
             return self._decode_branch(instruction_line, parts)
     
 
-    """Decodificadores por tipo de instruccion. Cada uno valida el formato especifico de su tipo,
-    y extrae los operandos correspondientes."""
-
     def _decode_r_type(self, instruction_line: str, parts: list[str]) -> Instruction:
+        """Formato R: opcode rd rs1 rs2."""
         self._expect_operand_count(parts, 4, "opcode rd rs1 rs2", instruction_line)
         rd, rs1, rs2 = (self._parse_register(part, instruction_line) for part in parts[1:4])
         return Instruction(
@@ -75,6 +74,7 @@ class Decoder:
         )
 
     def _decode_i_type(self, instruction_line: str, parts: list[str]) -> Instruction:
+        """Formato I aritmetico: opcode rd rs1 imm."""
         self._expect_operand_count(parts, 4, "opcode rd rs1 imm", instruction_line)
         return Instruction(
             opcode=parts[0],
@@ -85,6 +85,7 @@ class Decoder:
         )
 
     def _decode_load(self, instruction_line: str, parts: list[str]) -> Instruction:
+        """Formato load: opcode rd offset(rs1)."""
         self._expect_operand_count(parts, 3, "opcode rd offset(rs1)", instruction_line)
         offset, base = self._parse_memory_operand(parts[2], instruction_line)
 
@@ -97,6 +98,7 @@ class Decoder:
         )
 
     def _decode_store(self, instruction_line: str, parts: list[str]) -> Instruction:
+        """Formato store: opcode rs2 offset(rs1)."""
         
         self._expect_operand_count(parts, 3, "opcode rs2 offset(rs1)", instruction_line)
         offset, base = self._parse_memory_operand(parts[2], instruction_line)
@@ -111,6 +113,7 @@ class Decoder:
     
 
     def _decode_branch(self, instruction_line: str, parts: list[str]) -> Instruction:
+        """Formato branch: opcode rs1 rs2 label|imm."""
         self._expect_operand_count(parts, 4, "opcode rs1 rs2 label|imm", instruction_line)
 
         return Instruction(
@@ -122,10 +125,9 @@ class Decoder:
         )
     
 
-    """ Funcion auxiliar para validar que una instruccion tiene la cantidad de operandos esperada. 
-    Si no, lanza ValueError con mensaje claro para la UI. """
     def _expect_operand_count(self, parts: list[str], expected_count: int, 
         expected_format: str, instruction_line: str) -> None:
+        """Valida cantidad exacta de operandos para errores claros."""
 
         if len(parts) != expected_count:
             raise ValueError(
@@ -134,26 +136,23 @@ class Decoder:
             )
 
 
-    """ Funcion auxiliar para validar que un token es un registro valido 
-        (x0-x31). Si es valido, devuelve el token."""
     def _parse_register(self, token: str, instruction_line: str) -> str:
+        """Valida registros x0..x31."""
         if not self._REGISTER_PATTERN.fullmatch(token):
             raise ValueError(f"Registro invalido '{token}' en instruccion {instruction_line!r}.")
         return token
     
 
-    """ Funcion auxiliar para validar que un token es un inmediato valido (decimal o hexadecimal)."""
     def _parse_immediate(self, token: str, instruction_line: str) -> int:
+        """Acepta inmediatos decimales o hexadecimales usando int(..., 0)."""
         try:
             return int(token, 0)
         except ValueError as exc:
             raise ValueError(f"Inmediato invalido '{token}' en instruccion {instruction_line!r}.") from exc
 
 
-    """ Funcion auxiliar para parsear el operando de un branch, que puede ser un inmediato numerico 
-    o una etiqueta resuelta por Parser."""
     def _parse_label_or_immediate(self, token: str, instruction_line: str) -> int:
-        # Branch puede recibir un inmediato numerico o una etiqueta resuelta por Parser.
+        """Resuelve branch hacia inmediato numerico o etiqueta del Parser."""
         try:
             return int(token, 0)
         except ValueError:
@@ -163,8 +162,8 @@ class Decoder:
             return self.labels[label]
 
 
-    """ Funcion auxiliar para parsear un operando de memoria del formato offset(base), por ejemplo 0(x2)."""
     def _parse_memory_operand(self, token: str, instruction_line: str) -> tuple[int, str]:
+        """Parsea offset(base), por ejemplo 0(x2)."""
         match = self._MEMORY_OPERAND_PATTERN.fullmatch(token)
         if not match:
             raise ValueError(

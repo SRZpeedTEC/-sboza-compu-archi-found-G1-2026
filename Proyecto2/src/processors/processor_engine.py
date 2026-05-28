@@ -1,16 +1,24 @@
+import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-import re
 
-from src.assembler.parser import AssemblyValidationError, Parser
-from src.processors.processor_snapshot import ProcessorSnapshot
-from src.core import Metrics, Decoder, ALU, RegisterBank, Memory, InstructionMemory, ControlUnit
 from src.assembler import ControlSignals, Instruction
+from src.assembler.parser import AssemblyValidationError, Parser
+from src.core import ALU, ControlUnit, Decoder, InstructionMemory, Memory, Metrics, RegisterBank
+from src.processors.processor_snapshot import ProcessorSnapshot
 
 
 class ProcessorEngine(ABC):
-    def __init__(self) -> None:
+    """Base comun para los motores de procesador del simulador.
 
+    Mantiene el flujo compartido Parser -> InstructionMemory -> Decoder ->
+    ControlUnit y ofrece helpers de ejecucion que usan uniciclo, multiciclo y
+    pipeline sin duplicar acceso a registros, memoria o ALU.
+    """
+
+    DEFAULT_PROGRAM_PATH = Path("programs/test.asm")
+
+    def __init__(self) -> None:
         self.pc = 0
         self.metrics = Metrics()
         self.control_signals = ControlSignals()
@@ -27,11 +35,18 @@ class ProcessorEngine(ABC):
         self.decoder = Decoder()
         self.instruction_line_numbers = {}
 
-        # Temporary variable to hold the source code for potential debugging or visualization purposes
-        self.source_code = Path("programs/test.asm").read_text(encoding="utf-8")
+        # Programa inicial usado por la UI cuando crea un motor antes de cargar
+        # explicitamente el contenido del editor.
+        self.source_code = self.DEFAULT_PROGRAM_PATH.read_text(encoding="utf-8")
 
 
     def load_program(self, source_code : str) -> None:
+        """Valida y carga un programa completo sin alterar estado si falla.
+
+        Primero se ejecuta la validacion con Parser, InstructionMemory y
+        Decoder. Solo cuando todo es correcto se reemplazan labels, memoria de
+        instrucciones y decoder del motor actual.
+        """
         instructions, labels, line_numbers = self.validate_program(source_code)
         self.labels = labels
         self.instruction_memory.load_instructions(instructions)
@@ -84,6 +99,7 @@ class ProcessorEngine(ABC):
         raw_instruction: str,
         line_numbers: dict[int, int]
     ) -> AssemblyValidationError:
+        """Convierte errores bajos del decoder en mensajes con linea fuente."""
         description = str(exc)
         token = None
         match = re.search(r"'([^']+)'", description)
@@ -102,6 +118,7 @@ class ProcessorEngine(ABC):
 
 
     def is_program_finished(self) -> bool:
+        """Indica si el PC ya salio del rango de instrucciones cargadas."""
         try:
             self.instruction_memory.fetch(self.pc)
             return False
@@ -118,6 +135,7 @@ class ProcessorEngine(ABC):
         return {index * 4: value for index, value in enumerate(self.memory._memory)}
 
     def get_snapshot(self) -> ProcessorSnapshot:
+        """Construye un snapshot generico para UI y pruebas."""
         return ProcessorSnapshot(
             pc=self.pc,
             metrics=self.metrics,
@@ -130,38 +148,38 @@ class ProcessorEngine(ABC):
         )
     
 
-    """ Funciones de ayuda para ejecutar instrucciones. Estas funciones encapsulan 
-    la logica de cada tipo de instruccion,"""
-
     def get_register(self, reg_name: str) -> int:
+        """Lee un registro usando la validacion del banco de registros."""
         return self.register_bank.read(reg_name)
     
 
     def write_register(self, reg_name: str, value: int) -> None:
+        """Escribe un registro; x0 conserva su comportamiento interno."""
         self.register_bank.write(reg_name, value)
 
 
     def execute_alu(self, operand1: int, operand2: int, control_signal: str) -> int:
+        """Ejecuta la operacion seleccionada por la unidad de control."""
         return self.alu.execute(control_signal, operand1, operand2)
     
 
     def load_from_memory(self, address: int) -> int:
+        """Lee memoria de datos validando alineacion y rango."""
         return self.memory.load_word(address)
     
 
     def write_in_memory(self, address: int, value: int) -> None:
+        """Escribe memoria de datos validando alineacion y rango."""
         self.memory.store_word(address, value)
 
     def next_pc(self) -> None:
+        """Avanza el PC a la siguiente palabra de instruccion."""
         self.pc += 4
 
 
-    """ Funciones genericas para ejecutar instrucciones en cualquier procesador """
-
     def execute_branch(self, instruction: Instruction, control_signal : ControlSignals) -> None:
+        """Ejecuta beq/bne con destino absoluto ya resuelto por el Decoder."""
         rs1 = self.get_register(instruction.rs1)
-        print("READING:", instruction.rs1)
-        print("VALUE:", rs1)
         rs2 = self.get_register(instruction.rs2)
         condition_met = False
 
@@ -180,6 +198,7 @@ class ProcessorEngine(ABC):
 
 
     def execute_sw(self, instruction: Instruction) -> None:
+        """Ejecuta store word: direccion = rs1 + inmediato, dato = rs2."""
 
         rs1 = self.get_register(instruction.rs1)
         rs2 = self.get_register(instruction.rs2)
@@ -189,6 +208,7 @@ class ProcessorEngine(ABC):
 
 
     def execute_lw(self, instruction: Instruction) -> None:
+        """Ejecuta load word y escribe el dato leido en rd."""
 
         rs1 = self.get_register(instruction.rs1)
         address = rs1 + instruction.imm
@@ -198,6 +218,7 @@ class ProcessorEngine(ABC):
 
 
     def execute_r_type(self, instruction: Instruction, control_signal: ControlSignals) -> None:
+        """Ejecuta instrucciones R-type con dos operandos de registro."""
 
         rs1 = self.get_register(instruction.rs1)
         rs2 = self.get_register(instruction.rs2)
@@ -208,17 +229,9 @@ class ProcessorEngine(ABC):
 
 
     def execute_addi(self, instruction: Instruction, control_signal: ControlSignals) -> None:
-
-        print("EXECUTING ADDI")
-
-        print("RD:", instruction.rd)
-        print("RS1:", instruction.rs1)
-        print("IMM:", instruction.imm)
+        """Ejecuta addi usando rs1 e inmediato como entradas de la ALU."""
 
         rs1 = self.get_register(instruction.rs1)
-
-        print("RS1 VALUE:", rs1)
-
         imm = instruction.imm
 
         result = self.execute_alu(
@@ -227,21 +240,12 @@ class ProcessorEngine(ABC):
             control_signal.alu_control
         )
 
-        print("RESULT:", result)
-
         self.write_register(
             instruction.rd,
             result
         )
 
-        print(
-            "REGISTER AFTER WRITE:",
-            self.get_register(instruction.rd)
-        )
-
         self.next_pc()
-
-        print("PC:", self.pc)
 
     def record_pipeline_state(
         self,
@@ -251,6 +255,11 @@ class ProcessorEngine(ABC):
         ex_mem,
         mem_wb
     ):
+        """Guarda una fila historica de pipeline consumida por la UI.
+
+        Aunque el pipeline no se limpia en esta iteracion, el helper vive en la
+        base para que los motores derivados compartan el formato de historial.
+        """
 
         row = [
             fetched_instruction,
@@ -260,8 +269,6 @@ class ProcessorEngine(ABC):
             mem_wb,
         ]
 
-        print("PIPELINE ROW:", row)
-
         self.pipeline_history.append(row)
 
     @abstractmethod
@@ -270,5 +277,6 @@ class ProcessorEngine(ABC):
         raise NotImplementedError
     
     def run(self):
+        """Ejecuta hasta que el PC salga del programa cargado."""
         while not self.is_program_finished():
             self.step()

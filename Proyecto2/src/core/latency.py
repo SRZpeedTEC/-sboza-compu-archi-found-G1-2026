@@ -156,8 +156,8 @@ PIPELINE_LATENCY_PS: int = CLOCK_PERIOD_PIPELINE   # 275
 def fmt_time(ps: int | float) -> str:
     """Convierte picosegundos a cadena legible.
 
-    < 1000 ps  ->  "XXX ps"
-    >= 1000 ps ->  "X.XXX ns"  (sin ceros finales)
+    < 1000 ps  ->  "N ps"
+    >= 1000 ps ->  "X.NNN ns"  (sin ceros finales)
     """
     if ps == 0:
         return "0 ps"
