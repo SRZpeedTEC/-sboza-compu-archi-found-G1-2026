@@ -4,6 +4,18 @@ QMainWindow {
     background-color: #f4f7ff;
 }
 
+QWidget#centralBackground,
+QScrollArea#mainScrollArea,
+QWidget#mainScrollViewport,
+QWidget#mainScrollContent,
+QWidget#comparisonPage {
+    background-color: #f4f7ff;
+}
+
+QScrollArea#mainScrollArea {
+    border: none;
+}
+
 QWidget {
     font-family: Segoe UI;
     color: #44506b;

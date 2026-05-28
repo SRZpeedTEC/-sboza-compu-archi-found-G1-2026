@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import *
 
 from src.UI.pages.comparison_page import ComparisonPage
@@ -17,18 +17,23 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(STYLE)
 
         central = QWidget()
+        central.setObjectName("centralBackground")
 
         # SCROLL AREA
         scroll = QScrollArea()
+        scroll.setObjectName("mainScrollArea")
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
+        scroll.viewport().setObjectName("mainScrollViewport")
 
         # CONTENIDO
         content = QWidget()
+        content.setObjectName("mainScrollContent")
         main_layout = QVBoxLayout(content)
 
         main_layout.setSpacing(20)
         main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setAlignment(Qt.AlignTop)
 
         # TOP CARD
         top_card = QFrame()
@@ -69,7 +74,7 @@ class MainWindow(QMainWindow):
         top_card.setLayout(top_layout)
 
         # TABS PRINCIPALES
-        main_tabs = QTabWidget()
+        self.main_tabs = QTabWidget()
 
         self.proc_a = ProcessorPage(
             "Procesador A",
@@ -86,9 +91,18 @@ class MainWindow(QMainWindow):
             self.proc_b
         )
         
-        main_tabs.addTab(self.proc_a, "Procesador A")
-        main_tabs.addTab(self.proc_b, "Procesador B")
-        main_tabs.addTab(self.comparison, "Comparación")
+        self.main_tabs.addTab(self.proc_a, "Procesador A")
+        self.main_tabs.addTab(self.proc_b, "Procesador B")
+        self.main_tabs.addTab(self.comparison, "Comparación")
+        self.main_tabs.currentChanged.connect(
+            self._resize_tabs_to_current_page
+        )
+        self.proc_a.selector.currentIndexChanged.connect(
+            self._resize_tabs_to_current_page
+        )
+        self.proc_b.selector.currentIndexChanged.connect(
+            self._resize_tabs_to_current_page
+        )
 
         # HISTORIAL
         history_card = QFrame()
@@ -123,7 +137,7 @@ class MainWindow(QMainWindow):
         # MAIN
         main_layout.addWidget(top_card)
         main_layout.addSpacing(15)
-        main_layout.addWidget(main_tabs)
+        main_layout.addWidget(self.main_tabs)
         main_layout.addWidget(history_card)
 
         content.setLayout(main_layout)
@@ -140,6 +154,7 @@ class MainWindow(QMainWindow):
         self.proc_b.comparison_page = self.comparison
         self.proc_a.main_window = self
         self.proc_b.main_window = self
+        QTimer.singleShot(0, self._resize_tabs_to_current_page)
 
     # Badge por arquitectura: (texto_corto, color_hex)
     _ARCH_BADGE = {
@@ -226,6 +241,33 @@ class MainWindow(QMainWindow):
             item = self.history_inner.takeAt(oldest_idx)
             if item and item.widget():
                 item.widget().deleteLater()
+
+    def _resize_tabs_to_current_page(self, _index=None) -> None:
+        """Ajusta el alto del tab activo para evitar espacio vacio innecesario."""
+        if not hasattr(self, "main_tabs"):
+            return
+
+        current_page = self.main_tabs.currentWidget()
+
+        if current_page is None:
+            return
+
+        current_page.updateGeometry()
+
+        # QTabWidget toma como referencia el tab mas alto. Para comparacion,
+        # esto dejaba el historial separado por un bloque vacio.
+        page_height = max(
+            current_page.sizeHint().height(),
+            current_page.minimumSizeHint().height()
+        )
+        tab_height = self.main_tabs.tabBar().sizeHint().height()
+        frame_width = self.main_tabs.style().pixelMetric(
+            QStyle.PM_DefaultFrameWidth
+        )
+        target_height = page_height + tab_height + (frame_width * 2)
+
+        self.main_tabs.setMinimumHeight(target_height)
+        self.main_tabs.setMaximumHeight(target_height)
     
     def execution_mode_changed(self):
 

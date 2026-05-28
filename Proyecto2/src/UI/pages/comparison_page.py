@@ -13,6 +13,7 @@ class ComparisonPage(QWidget):
 
         self.proc_a = proc_a
         self.proc_b = proc_b
+        self.setObjectName("comparisonPage")
 
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(6, 6, 6, 6)
@@ -308,24 +309,28 @@ class ComparisonPage(QWidget):
 
         self.hazard_compare_a.setFocusPolicy(Qt.NoFocus)
 
-        self.hazard_compare_a.setMaximumHeight(85)
+        self.hazard_compare_a.setMinimumHeight(120)
+        self.hazard_compare_a.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Expanding
+        )
 
         hazards_layout_a.addWidget(hazards_title_a)
         hazards_layout_a.addWidget(self.hazard_compare_a)
 
         hazards_a.setLayout(hazards_layout_a)
 
-        hazards_a.setMaximumHeight(140)
+        hazards_a.setMinimumHeight(175)
         hazards_a.setSizePolicy(
             QSizePolicy.Preferred,
-            QSizePolicy.Fixed
+            QSizePolicy.Expanding
         )
 
         # ARMAR
         left_layout.addWidget(left_header)
         left_layout.addWidget(datapath_a)
         left_layout.addWidget(metrics_a)
-        left_layout.addWidget(hazards_a)
+        left_layout.addWidget(hazards_a, 1)
 
         left_card.setSizePolicy(
             QSizePolicy.Preferred,
@@ -537,24 +542,28 @@ class ComparisonPage(QWidget):
 
         self.hazard_compare_b.setFocusPolicy(Qt.NoFocus)
 
-        self.hazard_compare_b.setMaximumHeight(85)
+        self.hazard_compare_b.setMinimumHeight(120)
+        self.hazard_compare_b.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Expanding
+        )
 
         hazards_layout_b.addWidget(hazards_title_b)
         hazards_layout_b.addWidget(self.hazard_compare_b)
 
         hazards_b.setLayout(hazards_layout_b)
 
-        hazards_b.setMaximumHeight(140)
+        hazards_b.setMinimumHeight(175)
         hazards_b.setSizePolicy(
             QSizePolicy.Preferred,
-            QSizePolicy.Fixed
+            QSizePolicy.Expanding
         )
 
         # ARMAR
         right_layout.addWidget(right_header)
         right_layout.addWidget(datapath_b)
         right_layout.addWidget(metrics_b)
-        right_layout.addWidget(hazards_b)
+        right_layout.addWidget(hazards_b, 1)
 
         right_card.setSizePolicy(
             QSizePolicy.Preferred,
