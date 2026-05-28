@@ -29,6 +29,9 @@ class ProcessorSimulationMixin:
 
     def step_execution(self):
 
+        if self.execution_finalized:
+            return
+
         if not self._ensure_program_ready():
             return
 
@@ -43,28 +46,12 @@ class ProcessorSimulationMixin:
             return
 
         if not executed:
-
-            self.timer.stop()
-            self.running = False
-
-            if self.hazard_box.count() == 0 or \
-                self.hazard_box.item(self.hazard_box.count()-1).text() != "Programa finalizado":
-                    self.hazard_box.addItem("Programa finalizado")
-
-            # Registrar ejecucion completa en el historial.
             snapshot = self.engine.get_snapshot()
-            self.main_window.add_history(
-                self._build_history_entry(snapshot)
-            )
+            self._finalize_execution(snapshot)
             self.clear_editor_execution_line()
             return
 
         snapshot = self.engine.get_snapshot()
-        print("STALL:", getattr(snapshot, "stalled", None))
-        print("FLUSH:", getattr(snapshot, "flushed", None))
-        print("FA:", getattr(snapshot, "forward_a", None))
-        print("FB:", getattr(snapshot, "forward_b", None))
-        self.hazard_box.clear()
 
         # Actualizar pipeline.
         if (
@@ -98,6 +85,9 @@ class ProcessorSimulationMixin:
     # RUN
     def run_execution(self):
 
+        if self.execution_finalized:
+            return
+
         if not self._ensure_program_ready():
             return
 
@@ -122,6 +112,7 @@ class ProcessorSimulationMixin:
 
                 snapshot = self.engine.get_snapshot()
                 self._continuous_cycle_count += 1
+                self._record_hazards_from_snapshot(snapshot)
 
                 if (
                     hasattr(snapshot, "pipeline")
@@ -149,17 +140,13 @@ class ProcessorSimulationMixin:
 
             if limit_reached:
                 self._mark_cycle_limit_reached()
-                self._add_status_message(CYCLE_LIMIT_MESSAGE)
+                self._render_hazard_history()
             else:
-                self.hazard_box.addItem(
-                    "Ejecucion completa finalizada"
-                )
+                self._render_hazard_history()
 
-            self.main_window.add_history(
-                self._build_history_entry(snapshot)
-            )
             self.update_pipeline_state(snapshot)
             self.update_datapath(snapshot)
+            self._finalize_execution(snapshot)
             if limit_reached:
                 self.update_editor_execution_line(snapshot)
             else:
@@ -182,6 +169,9 @@ class ProcessorSimulationMixin:
 
         self.running = False
         self._continuous_cycle_count = 0
+        self.execution_finalized = False
+        self.history_saved_for_current_run = False
+        self._loaded_source_code = None
 
         self.current_cycle = 0
 
@@ -194,7 +184,7 @@ class ProcessorSimulationMixin:
         self.metric_pc.set_value("0x0000")
         self.metric_total.set_value("0 ns")
 
-        self.hazard_box.clear()
+        self._reset_hazard_history()
 
         self.pipeline.clearContents()
         self.pipeline.setRowCount(0)
@@ -226,6 +216,7 @@ class ProcessorSimulationMixin:
                 self.editor.toPlainText()
             )
             self.engine.program_loaded = True
+            self._loaded_source_code = self.editor.toPlainText()
         except (AssemblyValidationError, ValueError) as exc:
             self.engine.program_loaded = False
             self._show_friendly_execution_error(exc)
@@ -339,6 +330,10 @@ class ProcessorSimulationMixin:
 
         self.running = False
         self._continuous_cycle_count = 0
+        self.execution_finalized = False
+        self.history_saved_for_current_run = False
+        self._loaded_source_code = source_code
+        self._reset_hazard_history()
 
     # VALIDACION Y ERRORES
     def _ensure_program_ready(self) -> bool:
@@ -351,13 +346,25 @@ class ProcessorSimulationMixin:
             self._show_friendly_execution_error(exc)
             return False
 
+        if self.execution_finalized and source_code == self._loaded_source_code:
+            return False
+
         if self.engine is None:
             self.create_engine()
 
-        if not self.engine.program_loaded:
+        source_changed = source_code != self._loaded_source_code
+
+        if source_changed:
+            self.create_engine()
+            self.execution_finalized = False
+            self.history_saved_for_current_run = False
+            self._reset_hazard_history()
+
+        if source_changed or not self.engine.program_loaded:
             try:
                 self.engine.load_program(source_code)
                 self.engine.program_loaded = True
+                self._loaded_source_code = source_code
             except (AssemblyValidationError, ValueError) as exc:
                 self._show_friendly_execution_error(exc)
                 return False
@@ -397,11 +404,29 @@ class ProcessorSimulationMixin:
         self.running = False
         self.timer.stop()
         self._mark_cycle_limit_reached()
-        self._add_status_message(CYCLE_LIMIT_MESSAGE)
+        self._render_hazard_history()
+        if self.engine is not None:
+            self._finalize_execution(self.engine.get_snapshot())
 
     def _mark_cycle_limit_reached(self) -> None:
         if self.engine is not None and hasattr(self.engine.metrics, "stopped_by_cycle_limit"):
             self.engine.metrics.stopped_by_cycle_limit = True
+
+    def _finalize_execution(self, snapshot) -> None:
+        """Guarda una ejecucion terminada una sola vez."""
+        self.running = False
+        self.timer.stop()
+        self.execution_finalized = True
+
+        if self.history_saved_for_current_run:
+            return
+
+        if hasattr(self, "main_window"):
+            self.main_window.add_history(
+                self._build_history_entry(snapshot)
+            )
+
+        self.history_saved_for_current_run = True
 
     # CONSTRUIR ENTRADA DE HISTORIAL
     def _build_history_entry(self, snapshot) -> dict:
@@ -426,16 +451,21 @@ class ProcessorSimulationMixin:
         cycles       = m.get("cycles", 0)
         instructions = m.get("instructions", 0)
         total_ps     = m.get("time_ps", 0)   # suma de rutas criticas acumuladas
-        cpi          = round(cycles / instructions, 2) if instructions > 0 else 0
-        ipc          = round(m.get("ipc", 0), 2)
+        cpi_value    = cycles / instructions if instructions > 0 else 0
+        ipc_value    = m.get("ipc", 0) if cycles > 0 else 0
+        cpi          = f"{cpi_value:.2f}"
+        ipc          = f"{ipc_value:.2f}"
         total_time   = fmt_time(total_ps)
 
         return {
             "processor":    self.processor_name,
             "architecture": architecture,
+            "status":       "Cycle limit reached" if m.get("stopped_by_cycle_limit") else "Completed",
             "cycles":       cycles,
             "instructions": instructions,
             "cpi":          cpi,
             "ipc":          ipc,
             "total_time":   total_time,
+            "stalls":       m.get("stalls", "-"),
+            "hazards":      len(getattr(self, "_hazard_history", [])),
         }

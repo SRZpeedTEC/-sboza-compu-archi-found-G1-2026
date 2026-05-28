@@ -8,11 +8,15 @@ QWidget#centralBackground,
 QScrollArea#mainScrollArea,
 QWidget#mainScrollViewport,
 QWidget#mainScrollContent,
-QWidget#comparisonPage {
+QWidget#comparisonPage,
+QScrollArea#historyScroll,
+QWidget#historyViewport,
+QWidget#historyContainer {
     background-color: #f4f7ff;
 }
 
-QScrollArea#mainScrollArea {
+QScrollArea#mainScrollArea,
+QScrollArea#historyScroll {
     border: none;
 }
 
@@ -63,6 +67,12 @@ QLabel#sectionTitle {
     font-size: 14pt;
     font-weight: bold;
     color: #5a67a5;
+}
+
+QLabel#emptyHistoryLabel {
+    color: #7b86ad;
+    font-size: 10pt;
+    padding: 24px;
 }
 
 QPushButton {

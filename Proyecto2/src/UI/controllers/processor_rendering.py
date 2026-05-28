@@ -20,6 +20,142 @@ class ProcessorRenderingMixin:
             text = text[:35] + "..."
 
         return text
+
+    def _reset_hazard_history(self) -> None:
+        """Limpia el historial visual de hazards para una ejecucion nueva."""
+        self._hazard_history = []
+        self._hazard_keys = set()
+        self._show_hazard_empty_state()
+
+    def _show_hazard_empty_state(self) -> None:
+        if hasattr(self, "hazard_box"):
+            self.hazard_box.clear()
+            self.hazard_box.addItem("No hazards detected yet.")
+
+    def _render_hazard_history(self) -> None:
+        if not hasattr(self, "hazard_box"):
+            return
+
+        self.hazard_box.clear()
+
+        if not self._hazard_history:
+            self.hazard_box.addItem("No hazards detected yet.")
+            return
+
+        for event in self._hazard_history:
+            self.hazard_box.addItem(self._format_hazard_event(event))
+
+    def _record_hazards_from_snapshot(self, snapshot) -> None:
+        events = self._hazard_events_from_snapshot(snapshot)
+
+        for event in events:
+            key = (
+                event.get("cycle"),
+                event.get("type"),
+                event.get("instruction"),
+                event.get("stage"),
+                event.get("description")
+            )
+
+            if key in self._hazard_keys:
+                continue
+
+            self._hazard_keys.add(key)
+            self._hazard_history.append(event)
+
+        if events:
+            self._render_hazard_history()
+        elif not self._hazard_history:
+            self._show_hazard_empty_state()
+
+    def _hazard_events_from_snapshot(self, snapshot) -> list[dict]:
+        architecture = self.selector.currentText()
+        metrics = (
+            snapshot.metrics.get_metrics()
+            if hasattr(snapshot, "metrics") and snapshot.metrics is not None
+            else {}
+        )
+        cycle = metrics.get("cycles", "-")
+        events = []
+
+        if getattr(snapshot, "stalled", False):
+            instruction = self._snapshot_instruction_text(snapshot, "id_ex")
+            events.append({
+                "cycle": cycle,
+                "type": "Data hazard",
+                "stage": "EX",
+                "instruction": instruction,
+                "description": "Pipeline stalled because a data dependency was detected.",
+                "resolution": self._generic_hazard_resolution(architecture, stalled=True),
+            })
+
+        if getattr(snapshot, "flushed", False):
+            instruction = self._snapshot_instruction_text(snapshot, "if_id")
+            events.append({
+                "cycle": cycle,
+                "type": "Control hazard",
+                "stage": "IF/ID",
+                "instruction": instruction,
+                "description": "Branch changed the control flow and flushed pipeline state.",
+                "resolution": "Resolved by flushing affected pipeline stages.",
+            })
+
+        forward_a = getattr(snapshot, "forward_a", "ID/EX")
+        if forward_a != "ID/EX":
+            instruction = self._snapshot_instruction_text(snapshot, "id_ex")
+            events.append({
+                "cycle": cycle,
+                "type": "Data hazard",
+                "stage": "EX",
+                "instruction": instruction,
+                "description": "Operand A needed a value from a later pipeline stage.",
+                "resolution": f"Resolved using forwarding from {forward_a} to EX.",
+            })
+
+        forward_b = getattr(snapshot, "forward_b", "ID/EX")
+        if forward_b != "ID/EX":
+            instruction = self._snapshot_instruction_text(snapshot, "id_ex")
+            events.append({
+                "cycle": cycle,
+                "type": "Data hazard",
+                "stage": "EX",
+                "instruction": instruction,
+                "description": "Operand B needed a value from a later pipeline stage.",
+                "resolution": f"Resolved using forwarding from {forward_b} to EX.",
+            })
+
+        return events
+
+    def _snapshot_instruction_text(self, snapshot, register_name: str) -> str:
+        pipe_reg = getattr(snapshot, register_name, None)
+
+        if pipe_reg is None:
+            return "-"
+
+        instruction = getattr(pipe_reg, "instruction", None)
+        return self.format_instruction(instruction) if instruction is not None else "-"
+
+    def _generic_hazard_resolution(self, architecture: str, stalled: bool = False) -> str:
+        if architecture == "Pipeline con Stalls":
+            return "Resolved by stall/bubble."
+
+        if architecture == "Pipeline con Forwarding":
+            if stalled:
+                return "Resolved by inserting stall/bubble when forwarding was not enough."
+            return "Resolved by forwarding when possible."
+
+        return "Resolution not available."
+
+    def _format_hazard_event(self, event: dict) -> str:
+        instruction = event.get("instruction") or "-"
+        stage = event.get("stage") or "-"
+
+        return (
+            f"Cycle {event.get('cycle', '-')} — {event.get('type', 'Hazard')}\n"
+            f"Instruction/Stage: {instruction} ({stage})\n"
+            f"Description: {event.get('description', '-')}\n"
+            f"Resolution: {event.get('resolution', '-')}"
+        )
     
     # ACTUALIZAR DATAPATH
     def update_datapath(self, snapshot):
@@ -341,25 +477,7 @@ class ProcessorRenderingMixin:
                 """)
 
         # HAZARDS Y FORWARDING
-        if hasattr(snapshot, "stalled") and snapshot.stalled:
-            self.hazard_box.addItem(
-                "Stall detectado (load-use hazard)"
-            )
-
-        if hasattr(snapshot, "flushed") and snapshot.flushed:
-            self.hazard_box.addItem(
-                "Flush por branch tomado"
-            )
-
-        if hasattr(snapshot, "forward_a") and snapshot.forward_a != "ID/EX":
-            self.hazard_box.addItem(
-                f"Forward A desde {snapshot.forward_a}"
-            )
-
-        if hasattr(snapshot, "forward_b") and snapshot.forward_b != "ID/EX":
-            self.hazard_box.addItem(
-                f"Forward B desde {snapshot.forward_b}"
-            )
+        self._record_hazards_from_snapshot(snapshot)
 
     # ACTUALIZAR METRICAS
     def update_metrics(self, snapshot):

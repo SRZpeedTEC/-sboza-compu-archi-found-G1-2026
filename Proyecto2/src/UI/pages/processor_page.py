@@ -18,6 +18,11 @@ class ProcessorPage(ProcessorSimulationMixin, ProcessorRenderingMixin, QWidget):
         self.current_cycle = 0
         self.running = False
         self._continuous_cycle_count = 0
+        self.execution_finalized = False
+        self.history_saved_for_current_run = False
+        self._loaded_source_code = None
+        self._hazard_history = []
+        self._hazard_keys = set()
         self.processor_name = name
 
         self.snapshots = []
@@ -472,6 +477,7 @@ class ProcessorPage(ProcessorSimulationMixin, ProcessorRenderingMixin, QWidget):
         self.hazard_box.setFocusPolicy(Qt.NoFocus)
 
         self.hazard_box.setMaximumHeight(140)
+        self._reset_hazard_history()
 
         # ARMAR TAB
         execution_layout.addLayout(top_split)

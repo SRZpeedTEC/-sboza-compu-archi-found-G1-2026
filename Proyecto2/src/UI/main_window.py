@@ -136,15 +136,24 @@ class MainWindow(QMainWindow):
 
         # Scroll area que contiene las tarjetas de cada ejecucion
         self.history_scroll = QScrollArea()
+        self.history_scroll.setObjectName("historyScroll")
         self.history_scroll.setWidgetResizable(True)
         self.history_scroll.setFrameShape(QFrame.NoFrame)
         self.history_scroll.setMinimumHeight(180)
         self.history_scroll.setMaximumHeight(240)
+        self.history_scroll.viewport().setObjectName("historyViewport")
 
         self.history_container = QWidget()
+        self.history_container.setObjectName("historyContainer")
         self.history_inner = QVBoxLayout(self.history_container)
         self.history_inner.setContentsMargins(0, 0, 0, 0)
         self.history_inner.setSpacing(6)
+        self.history_entries = []
+
+        self.history_empty_label = QLabel("No executions yet.")
+        self.history_empty_label.setObjectName("emptyHistoryLabel")
+        self.history_empty_label.setAlignment(Qt.AlignCenter)
+        self.history_inner.addWidget(self.history_empty_label)
         self.history_inner.addStretch()   # empuja las tarjetas hacia arriba
 
         self.history_scroll.setWidget(self.history_container)
@@ -196,6 +205,7 @@ class MainWindow(QMainWindow):
         """
         arch = entry.get("architecture", "?")
         badge_text, badge_color = self._ARCH_BADGE.get(arch, ("?", "#aaaaaa"))
+        self.history_empty_label.hide()
 
         # ---- Tarjeta ----
         card = QFrame()
@@ -234,6 +244,12 @@ class MainWindow(QMainWindow):
             f"  —  {arch}"
         )
         name_lbl.setStyleSheet("font-size: 10pt; color: #22264a; border: none;")
+        name_lbl.setText(
+            f"<b>{entry.get('processor', '?')}</b>"
+            f"  -  {arch}"
+            f"  |  Estado: <b>{entry.get('status', '-')}</b>"
+        )
+        name_lbl.setTextFormat(Qt.RichText)
 
         metrics_lbl = QLabel(
             f"Ciclos: <b>{entry.get('cycles', 0)}</b>"
@@ -242,10 +258,25 @@ class MainWindow(QMainWindow):
             f"   |   Tiempo total: <b>{entry.get('total_time', '—')}</b>"
         )
         metrics_lbl.setStyleSheet("font-size: 9pt; color: #556699; border: none;")
+        metrics_lbl.setText(
+            f"Ciclos: <b>{entry.get('cycles', '-')}</b>"
+            f"   |   Instrucciones: <b>{entry.get('instructions', '-')}</b>"
+            f"   |   CPI: <b>{entry.get('cpi', '-')}</b>"
+            f"   |   IPC: <b>{entry.get('ipc', '-')}</b>"
+            f"   |   Tiempo simulado: <b>{entry.get('total_time', '-')}</b>"
+        )
         metrics_lbl.setTextFormat(Qt.RichText)
+
+        hazard_lbl = QLabel(
+            f"Stalls: <b>{entry.get('stalls', '-')}</b>"
+            f"   |   Hazards: <b>{entry.get('hazards', '-')}</b>"
+        )
+        hazard_lbl.setStyleSheet("font-size: 9pt; color: #556699; border: none;")
+        hazard_lbl.setTextFormat(Qt.RichText)
 
         info_col.addWidget(name_lbl)
         info_col.addWidget(metrics_lbl)
+        info_col.addWidget(hazard_lbl)
 
         card_layout.addWidget(badge)
         card_layout.addLayout(info_col)
@@ -253,13 +284,13 @@ class MainWindow(QMainWindow):
 
         # Insertar la tarjeta nueva al principio (indice 0)
         self.history_inner.insertWidget(0, card)
+        self.history_entries.insert(0, card)
 
         # Limitar a 10 entradas: eliminar la mas antigua (justo antes del stretch)
-        while (self.history_inner.count() - 1) > 10:
-            oldest_idx = self.history_inner.count() - 2
-            item = self.history_inner.takeAt(oldest_idx)
-            if item and item.widget():
-                item.widget().deleteLater()
+        while len(self.history_entries) > 10:
+            oldest = self.history_entries.pop()
+            self.history_inner.removeWidget(oldest)
+            oldest.deleteLater()
 
     def _resize_tabs_to_current_page(self, _index=None) -> None:
         """Ajusta el alto del tab activo para evitar espacio vacio innecesario."""
