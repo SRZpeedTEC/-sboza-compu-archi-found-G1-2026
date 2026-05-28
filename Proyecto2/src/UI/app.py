@@ -7,6 +7,7 @@ from pathlib import Path
 
 
 def _prepare_macos_qt_plugins() -> None:
+    """Prepara plugins Qt en macOS cuando PySide6 no los encuentra solo."""
     if sys.platform != "darwin" or os.environ.get("QT_QPA_PLATFORM_PLUGIN_PATH"):
         return
 

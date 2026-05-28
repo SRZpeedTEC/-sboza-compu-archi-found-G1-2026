@@ -72,6 +72,11 @@ BRANCH_OPCODES = {"beq", "bne"}
 
 
 def map_pipeline_datapath_state(snapshot) -> dict:
+    """Convierte registros de pipeline y banderas en estado visual.
+
+    La vista no debe conocer dataclasses ni objetos del motor; este mapper
+    expone módulos, barreras, forwarding, stalls y flushes como diccionarios.
+    """
     if_id = _get(snapshot, "if_id")
     id_ex = _get(snapshot, "id_ex")
     ex_mem = _get(snapshot, "ex_mem")

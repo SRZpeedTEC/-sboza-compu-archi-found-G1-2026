@@ -1,4 +1,4 @@
-""" Pipeline sin hazard control, solo uso de stalls para resolver dependencias RAW.
+"""Pipeline que resuelve hazards RAW insertando stalls.
 
 Toda dependencia RAW se resuelve congelando el PC y el registro IF/ID e insertando una burbuja (stall) en
 ID/EX hasta que la instruccion productora complete WB.
@@ -7,17 +7,21 @@ Penalizacion de control (branch tomado): 2 ciclos (flush de IF_ID e ID_EX).
 """
 
 from src.core.latency import PIPELINE_LATENCY_PS
+from src.pipeline.hazard_detection import detect_data_hazard
+from src.pipeline.pipeline_registers import EX_MEM, ID_EX, IF_ID, MEM_WB
+from src.pipeline.stages import (
+    stage_decode,
+    stage_execute,
+    stage_fetch,
+    stage_memory,
+    stage_writeback,
+)
 from src.processors.processor_engine import ProcessorEngine
 from src.processors.processor_snapshot import ProcessorSnapshot
-from src.assembler import ControlSignals
-from src.pipeline.pipeline_registers import IF_ID, ID_EX, EX_MEM, MEM_WB
-from src.pipeline.stages import (
-    stage_fetch, stage_decode, stage_execute, stage_memory, stage_writeback,
-)
-from src.pipeline.hazard_detection import detect_data_hazard
+
 
 class PipelineStallEngine(ProcessorEngine):
-    """Cada step() representa un ciclo de reloj completo, todas las etapas avanzan en paralelo"""
+    """Cada step representa un ciclo; todas las etapas avanzan en paralelo."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -26,8 +30,8 @@ class PipelineStallEngine(ProcessorEngine):
         self.processor_snapshot = self.get_snapshot()
 
 
-    # Inicializacion de registros 
     def _init_pipeline_registers(self) -> None:
+        """Inicializa los registros entre etapas y banderas visibles para la UI."""
         self._if_id: IF_ID = IF_ID()
         self._id_ex: ID_EX = ID_EX()
         self._ex_mem: EX_MEM = EX_MEM()
@@ -36,7 +40,6 @@ class PipelineStallEngine(ProcessorEngine):
         self._flushed: bool = False
         self._pc_beyond_end: bool = False
 
-    # Interfaz publica
     def is_program_finished(self) -> bool:
         """El programa termina cuando el pipeline esta vacio y ya no hay
         instrucciones que fetchear."""
@@ -55,23 +58,25 @@ class PipelineStallEngine(ProcessorEngine):
         self._stalled = False
         self._flushed = False
 
-        # ---- WB: escribe en registro (al inicio del ciclo) ----
+        # WB escribe al inicio del ciclo para que ID pueda leer valores recien
+        # confirmados sin necesitar un stall adicional por MEM/WB.
         stage_writeback(self._mem_wb, self.register_bank)
 
-        # ---- MEM: accede a memoria ----
+        # MEM consume EX/MEM actual y prepara el registro MEM/WB siguiente.
         next_mem_wb = stage_memory(self._ex_mem, self.memory)
 
-        # ---- EX: opera la ALU, detecta branch ----
+        # EX opera la ALU y puede decidir un branch tomado.
         next_ex_mem, branch_taken, branch_target = stage_execute(
             self._id_ex, self.alu
         )
 
-        # ---- Contabilizar la instruccion que completa en WB ----
+        # Una instruccion cuenta como completada solo cuando llega a WB.
         if self._mem_wb.instruction is not None and self._mem_wb.control is not None:
             self.control_signals = self._mem_wb.control
             self.metrics.count_instruction()
 
-        # ---- Control hazard: branch tomado, genera flush IF_ID e ID_EX ----
+        # Branch tomado: las instrucciones especulativas en IF/ID e ID/EX se
+        # reemplazan por burbujas y el PC salta al destino absoluto.
         if branch_taken:
             self._flushed = True
             next_if_id = IF_ID()
@@ -94,9 +99,9 @@ class PipelineStallEngine(ProcessorEngine):
             self.processor_snapshot = self.get_snapshot()
             return True
 
-        # ---- Data hazard: stall si hay dependencia RAW ----
-        # Comparar contra self._id_ex (en EX ahora) y self._ex_mem (en MEM ahora);
-        # ambos no han escrito todavia. MEM_WB ya escribio en WB al inicio del ciclo.
+        # Data hazard: se compara la instruccion en ID contra productores en EX
+        # y MEM. Como este motor no tiene forwarding, cualquier RAW pendiente
+        # congela IF/ID y mete una burbuja a ID/EX.
         stall = detect_data_hazard(
             self._if_id,
             self._id_ex,
@@ -116,20 +121,18 @@ class PipelineStallEngine(ProcessorEngine):
                 next_ex_mem,
                 next_mem_wb
             )
-            # Congela PC e IF_ID; inserta burbuja en ID_EX
-            bubble = ID_EX()
-            self._id_ex = bubble    # burbuja
+            self._id_ex = ID_EX()
             self._ex_mem = next_ex_mem
             self._mem_wb = next_mem_wb
             self.processor_snapshot = self.get_snapshot()
             return True
 
-        # ---- Sin hazard: avance normal ----
+        # Sin hazards: ID decodifica la instruccion anterior y IF trae la
+        # siguiente instruccion si el PC aun esta dentro del programa.
         next_id_ex = stage_decode(
             self._if_id, self.register_bank, self.decoder, self.control_unit
         )
 
-        # Fetch: si el PC ya esta fuera del programa inserta burbuja
         try:
             self.instruction_memory.fetch(self.pc)
             next_if_id = stage_fetch(self.pc, self.instruction_memory)
@@ -154,43 +157,19 @@ class PipelineStallEngine(ProcessorEngine):
         self.processor_snapshot = self.get_snapshot()
         return True
 
-    def run(self) -> None:
-        while self.step():
-            pass
-
     def get_snapshot(self) -> ProcessorSnapshot:
-
-        registers = []
-
-        for i in range(32):
-
-            registers.append(
-                self.register_bank.read(f"x{i}")
-            )
-
-        memory = {}
-
-        for index, value in enumerate(self.memory._memory):
-
-            real_address = index * 4
-
-            memory[real_address] = value
-
+        """Entrega estado de pipeline, metricas y registros para UI/pruebas."""
         return ProcessorSnapshot(
             pc=self.pc,
             metrics=self.metrics,
             control_signals=self.control_signals,
-
-            registers=registers,
-            memory=memory,
-
+            registers=self._collect_registers(),
+            memory=self._collect_memory(),
             pipeline=self.pipeline_history,
-
             if_id=self._if_id,
             id_ex=self._id_ex,
             ex_mem=self._ex_mem,
             mem_wb=self._mem_wb,
-
             stalled=self._stalled,
             flushed=self._flushed
         )

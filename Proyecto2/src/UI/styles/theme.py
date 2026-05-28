@@ -4,6 +4,22 @@ QMainWindow {
     background-color: #f4f7ff;
 }
 
+QWidget#centralBackground,
+QScrollArea#mainScrollArea,
+QWidget#mainScrollViewport,
+QWidget#mainScrollContent,
+QWidget#comparisonPage,
+QScrollArea#historyScroll,
+QWidget#historyViewport,
+QWidget#historyContainer {
+    background-color: #f4f7ff;
+}
+
+QScrollArea#mainScrollArea,
+QScrollArea#historyScroll {
+    border: none;
+}
+
 QWidget {
     font-family: Segoe UI;
     color: #44506b;
@@ -41,10 +57,22 @@ QLabel#subtitle {
     font-size: 12pt;
 }
 
+QLabel#speedLabel {
+    color: white;
+    font-size: 10pt;
+    font-weight: bold;
+}
+
 QLabel#sectionTitle {
     font-size: 14pt;
     font-weight: bold;
     color: #5a67a5;
+}
+
+QLabel#emptyHistoryLabel {
+    color: #7b86ad;
+    font-size: 10pt;
+    padding: 24px;
 }
 
 QPushButton {
@@ -98,6 +126,29 @@ QComboBox QAbstractItemView {
     selection-background-color: #eef2ff;
     selection-color: #5a67a5;
     outline: none;
+}
+
+QSpinBox {
+    background-color: rgba(255,255,255,0.95);
+    border: 2px solid #e4e8ff;
+    border-radius: 18px;
+    padding: 12px;
+    padding-left: 16px;
+    font-size: 11pt;
+    font-weight: bold;
+    color: #5865a5;
+    min-height: 24px;
+}
+
+QSpinBox:hover {
+    border: 2px solid #cfd8ff;
+    background-color: white;
+}
+
+QSpinBox::up-button,
+QSpinBox::down-button {
+    border: none;
+    width: 28px;
 }
 
 QTabWidget::pane {
@@ -199,4 +250,3 @@ QScrollBar:horizontal {
 }
 
 """
-

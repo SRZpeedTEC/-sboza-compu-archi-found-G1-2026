@@ -20,6 +20,7 @@ class RegisterBank:
         return self._registers[index]
 
     def read(self, reg: str) -> int:
+        """Alias breve usado por los motores de procesador."""
         return self.read_register(reg)
 
 
@@ -34,21 +35,19 @@ class RegisterBank:
         self._registers[index] = value
 
     def write(self, reg: str, value: int) -> None:
+        """Alias breve usado por los motores de procesador."""
         self.write_register(reg, value)
 
 
-
-    """Funcion para obtener una copia del estado actual de los registros"""
     def get_snapshot(self) -> list[int]:
+        """Obtiene una copia del estado actual de los registros."""
         snapshot = list(self._registers)
         snapshot[0] = 0
         return snapshot
     
 
-    
-    
-    """Funcion para convertir un registro a su indice numerico, validando su formato y rango."""
     def _to_index(self, reg: str) -> int:
+        """Convierte xN/rN a indice numerico y valida rango."""
         if not isinstance(reg, str) or len(reg) < 2:
             raise ValueError(f"Registro invalido: {reg!r}.")
 

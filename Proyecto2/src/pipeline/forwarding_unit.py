@@ -28,6 +28,8 @@ def resolve_forwarding(id_ex: ID_EX, ex_mem: EX_MEM, mem_wb: MEM_WB) -> Forwardi
     forward_a = "ID/EX"
     forward_b = "ID/EX"
 
+    # EX/MEM tiene prioridad porque contiene el resultado mas reciente; MEM/WB
+    # solo se usa si el operando no fue resuelto por una etapa mas joven.
     if _can_forward_from_ex_mem(ex_mem):
         if id_ex.rs1 == ex_mem.rd:
             a = ex_mem.alu_result

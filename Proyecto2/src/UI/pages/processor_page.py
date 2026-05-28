@@ -17,6 +17,12 @@ class ProcessorPage(ProcessorSimulationMixin, ProcessorRenderingMixin, QWidget):
         super().__init__()
         self.current_cycle = 0
         self.running = False
+        self._continuous_cycle_count = 0
+        self.execution_finalized = False
+        self.history_saved_for_current_run = False
+        self._loaded_source_code = None
+        self._hazard_history = []
+        self._hazard_keys = set()
         self.processor_name = name
 
         self.snapshots = []
@@ -425,6 +431,12 @@ class ProcessorPage(ProcessorSimulationMixin, ProcessorRenderingMixin, QWidget):
             "#fff1d9"
         )
 
+        self.metric_ipc = MetricCard(
+            "IPC",
+            "0",
+            "#f0ecff"
+        )
+
         self.metric_time = MetricCard(
             "Tiempo",
             "0 ns",
@@ -446,6 +458,7 @@ class ProcessorPage(ProcessorSimulationMixin, ProcessorRenderingMixin, QWidget):
         metrics_layout.addWidget(self.metric_cycles)
         metrics_layout.addWidget(self.metric_instructions)
         metrics_layout.addWidget(self.metric_cpi)
+        metrics_layout.addWidget(self.metric_ipc)
         metrics_layout.addWidget(self.metric_time)
         metrics_layout.addWidget(self.metric_pc)
         metrics_layout.addWidget(self.metric_total)
@@ -464,6 +477,7 @@ class ProcessorPage(ProcessorSimulationMixin, ProcessorRenderingMixin, QWidget):
         self.hazard_box.setFocusPolicy(Qt.NoFocus)
 
         self.hazard_box.setMaximumHeight(140)
+        self._reset_hazard_history()
 
         # ARMAR TAB
         execution_layout.addLayout(top_split)

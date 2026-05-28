@@ -1,8 +1,9 @@
-from src.core.latency import SINGLE_CYCLE_LATENCY_PS
+from src.core.latency import CLOCK_PERIOD_SINGLE_CYCLE
 from src.processors.processor_engine import ProcessorEngine
 
+
 class SingleCycleEngine(ProcessorEngine):
-    """Punto de extension para ejecutar una instruccion completa por ciclo."""
+    """Procesador uniciclo: cada step ejecuta una instruccion completa."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -11,55 +12,54 @@ class SingleCycleEngine(ProcessorEngine):
         self.load_program(self.source_code)
         self.processor_snapshot = self.get_snapshot()
 
-
     def step(self) -> bool:
+        """Ejecuta fetch, decode, execute/memory/writeback y actualiza metricas."""
         if self.is_program_finished():
             return False
-        
+
+        # FETCH: el PC apunta directamente a la instruccion que se ejecutara.
         raw_instruction = self.instruction_memory.fetch(self.pc)
+
+        # DECODE + CONTROL: se separan para conservar el flujo del datapath.
         instruction = self.decoder.decode(raw_instruction)
         self.current_instruction = instruction
-
-        # Generar las señales de control para la instruccion actual. 
-        # principalmente util para frontend
-        control_signal = self.control_unit.generate_control_signals(
-            instruction)
+        control_signal = self.control_unit.generate_control_signals(instruction)
         self.control_signals = control_signal
         self.single_cycle_trace = self._build_single_cycle_trace(
             instruction,
             control_signal,
-            self.pc
+            self.pc,
         )
 
-        
+        # EXECUTE/MEMORY/WRITEBACK: los helpers de ProcessorEngine modelan el
+        # efecto arquitectonico completo de cada tipo de instruccion.
         match instruction.opcode:
             case "add" | "sub" | "and" | "or" | "xor":
                 self.execute_r_type(instruction, control_signal)
-            
             case "addi":
                 self.execute_addi(instruction, control_signal)
-
             case "lw":
                 self.execute_lw(instruction)
-                
-
             case "sw":
                 self.execute_sw(instruction)
-
             case "beq" | "bne":
                 self.execute_branch(instruction, control_signal)
 
-            
+        # METRICAS: en uniciclo cada instruccion consume un ciclo completo.
+        # El ciclo lo fija la instruccion mas lenta, no el opcode ejecutado.
         self.single_cycle_trace["next_pc"] = self.pc
         self.metrics.count_cycle()
         self.metrics.count_instruction()
-        self.metrics.add_time(
-            SINGLE_CYCLE_LATENCY_PS.get(instruction.opcode, 730)
-        )
+        self.metrics.add_time(CLOCK_PERIOD_SINGLE_CYCLE)
         self.processor_snapshot = self.get_snapshot()
         return True
 
     def _build_single_cycle_trace(self, instruction, control_signal, pc_before):
+        """Calcula valores intermedios que la UI necesita para pintar el datapath.
+
+        No modifica estado arquitectonico; solo replica de forma segura las
+        decisiones de operandos, ALU, memoria y writeback antes de ejecutar.
+        """
         rs1_value = (
             self.get_register(instruction.rs1)
             if instruction.rs1 is not None
@@ -83,7 +83,7 @@ class SingleCycleEngine(ProcessorEngine):
             alu_result = self.execute_alu(
                 operand_a,
                 operand_b,
-                control_signal.alu_control
+                control_signal.alu_control,
             )
 
         memory_address = None
@@ -110,7 +110,7 @@ class SingleCycleEngine(ProcessorEngine):
         elif instruction.opcode in {"beq", "bne"}:
             branch_taken = self._branch_condition_met(
                 instruction.opcode,
-                alu_result
+                alu_result,
             )
             if branch_taken:
                 next_pc = instruction.imm
@@ -144,6 +144,7 @@ class SingleCycleEngine(ProcessorEngine):
         }
 
     def _branch_condition_met(self, opcode, alu_result):
+        """Evalua la condicion de branch usando el resultado SUB de la ALU."""
         if alu_result is None:
             return None
 

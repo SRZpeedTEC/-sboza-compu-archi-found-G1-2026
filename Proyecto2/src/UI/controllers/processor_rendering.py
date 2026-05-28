@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QTableWidgetItem, QTextEdit
 
 class ProcessorRenderingMixin:
     def format_instruction(self, instruction):
+        """Normaliza instrucciones para tablas, etapas y mensajes de hazards."""
 
         if instruction is None:
             return "-"
@@ -20,9 +21,150 @@ class ProcessorRenderingMixin:
             text = text[:35] + "..."
 
         return text
+
+    def _reset_hazard_history(self) -> None:
+        """Limpia el historial visual de hazards para una ejecucion nueva."""
+        self._hazard_history = []
+        self._hazard_keys = set()
+        self._show_hazard_empty_state()
+
+    def _show_hazard_empty_state(self) -> None:
+        """Muestra un estado vacío estable mientras no existan eventos."""
+        if hasattr(self, "hazard_box"):
+            self.hazard_box.clear()
+            self.hazard_box.addItem("No hazards detected yet.")
+
+    def _render_hazard_history(self) -> None:
+        """Renderiza el historial acumulado sin borrar eventos ya registrados."""
+        if not hasattr(self, "hazard_box"):
+            return
+
+        self.hazard_box.clear()
+
+        if not self._hazard_history:
+            self.hazard_box.addItem("No hazards detected yet.")
+            return
+
+        for event in self._hazard_history:
+            self.hazard_box.addItem(self._format_hazard_event(event))
+
+    def _record_hazards_from_snapshot(self, snapshot) -> None:
+        """Extrae eventos del snapshot y evita duplicados por ciclo/descripcion."""
+        events = self._hazard_events_from_snapshot(snapshot)
+
+        for event in events:
+            key = (
+                event.get("cycle"),
+                event.get("type"),
+                event.get("instruction"),
+                event.get("stage"),
+                event.get("description")
+            )
+
+            if key in self._hazard_keys:
+                continue
+
+            self._hazard_keys.add(key)
+            self._hazard_history.append(event)
+
+        if events:
+            self._render_hazard_history()
+        elif not self._hazard_history:
+            self._show_hazard_empty_state()
+
+    def _hazard_events_from_snapshot(self, snapshot) -> list[dict]:
+        """Mapea banderas de pipeline/forwarding a eventos legibles por la UI."""
+        architecture = self.selector.currentText()
+        metrics = (
+            snapshot.metrics.get_metrics()
+            if hasattr(snapshot, "metrics") and snapshot.metrics is not None
+            else {}
+        )
+        cycle = metrics.get("cycles", "-")
+        events = []
+
+        if getattr(snapshot, "stalled", False):
+            instruction = self._snapshot_instruction_text(snapshot, "id_ex")
+            events.append({
+                "cycle": cycle,
+                "type": "Data hazard",
+                "stage": "EX",
+                "instruction": instruction,
+                "description": "Pipeline stalled because a data dependency was detected.",
+                "resolution": self._generic_hazard_resolution(architecture, stalled=True),
+            })
+
+        if getattr(snapshot, "flushed", False):
+            instruction = self._snapshot_instruction_text(snapshot, "if_id")
+            events.append({
+                "cycle": cycle,
+                "type": "Control hazard",
+                "stage": "IF/ID",
+                "instruction": instruction,
+                "description": "Branch changed the control flow and flushed pipeline state.",
+                "resolution": "Resolved by flushing affected pipeline stages.",
+            })
+
+        forward_a = getattr(snapshot, "forward_a", "ID/EX")
+        if forward_a != "ID/EX":
+            instruction = self._snapshot_instruction_text(snapshot, "id_ex")
+            events.append({
+                "cycle": cycle,
+                "type": "Data hazard",
+                "stage": "EX",
+                "instruction": instruction,
+                "description": "Operand A needed a value from a later pipeline stage.",
+                "resolution": f"Resolved using forwarding from {forward_a} to EX.",
+            })
+
+        forward_b = getattr(snapshot, "forward_b", "ID/EX")
+        if forward_b != "ID/EX":
+            instruction = self._snapshot_instruction_text(snapshot, "id_ex")
+            events.append({
+                "cycle": cycle,
+                "type": "Data hazard",
+                "stage": "EX",
+                "instruction": instruction,
+                "description": "Operand B needed a value from a later pipeline stage.",
+                "resolution": f"Resolved using forwarding from {forward_b} to EX.",
+            })
+
+        return events
+
+    def _snapshot_instruction_text(self, snapshot, register_name: str) -> str:
+        pipe_reg = getattr(snapshot, register_name, None)
+
+        if pipe_reg is None:
+            return "-"
+
+        instruction = getattr(pipe_reg, "instruction", None)
+        return self.format_instruction(instruction) if instruction is not None else "-"
+
+    def _generic_hazard_resolution(self, architecture: str, stalled: bool = False) -> str:
+        if architecture == "Pipeline con Stalls":
+            return "Resolved by stall/bubble."
+
+        if architecture == "Pipeline con Forwarding":
+            if stalled:
+                return "Resolved by inserting stall/bubble when forwarding was not enough."
+            return "Resolved by forwarding when possible."
+
+        return "Resolution not available."
+
+    def _format_hazard_event(self, event: dict) -> str:
+        instruction = event.get("instruction") or "-"
+        stage = event.get("stage") or "-"
+
+        return (
+            f"Cycle {event.get('cycle', '-')} — {event.get('type', 'Hazard')}\n"
+            f"Instruction/Stage: {instruction} ({stage})\n"
+            f"Description: {event.get('description', '-')}\n"
+            f"Resolution: {event.get('resolution', '-')}"
+        )
     
     # ACTUALIZAR DATAPATH
     def update_datapath(self, snapshot):
+        """Envía el snapshot al datapath que corresponde a la arquitectura activa."""
 
         architecture = self.selector.currentText()
 
@@ -48,13 +190,11 @@ class ProcessorRenderingMixin:
         self.datapath_widget.set_active_blocks([])
 
     def update_editor_execution_line(self, snapshot):
+        """Resalta la línea fuente asociada al PC visible del snapshot."""
         if not hasattr(self, "editor"):
             return
 
-        trace = getattr(snapshot, "single_cycle_trace", {}) or {}
-        pc = trace.get("pc")
-        if pc is None:
-            pc = getattr(snapshot, "multi_cycle_old_pc", None)
+        pc = self._active_pc_for_editor(snapshot)
         line_number = self._source_line_for_pc(pc)
 
         if line_number is None:
@@ -63,6 +203,10 @@ class ProcessorRenderingMixin:
 
         selection = QTextEdit.ExtraSelection()
         block = self.editor.document().findBlockByNumber(line_number)
+        if not block.isValid():
+            self.clear_editor_execution_line()
+            return
+
         selection.cursor = QTextCursor(block)
         selection.cursor.clearSelection()
 
@@ -78,10 +222,41 @@ class ProcessorRenderingMixin:
         self.editor.centerCursor()
 
     def clear_editor_execution_line(self):
+        """Quita el resaltado del editor cuando no hay instrucción activa."""
         if hasattr(self, "editor"):
             self.editor.setExtraSelections([])
 
+    def _active_pc_for_editor(self, snapshot):
+        if snapshot is None:
+            return None
+
+        trace = getattr(snapshot, "single_cycle_trace", {}) or {}
+        pc = trace.get("pc")
+
+        if pc is not None:
+            return pc
+
+        pc = getattr(snapshot, "multi_cycle_old_pc", None)
+
+        if pc is not None and getattr(snapshot, "ir", None):
+            return pc
+
+        # En pipeline pueden existir varias instrucciones activas. Se usa IF
+        # como politica visual principal; si IF esta vacio, se conserva una
+        # etapa posterior para que el usuario pueda seguir la instruccion activa.
+        for register_name in ("if_id", "id_ex", "ex_mem", "mem_wb"):
+            pipe_reg = getattr(snapshot, register_name, None)
+
+            if pipe_reg is None:
+                continue
+
+            if getattr(pipe_reg, "instruction", None) is not None:
+                return getattr(pipe_reg, "pc", None)
+
+        return None
+
     def _source_line_for_pc(self, pc):
+        """Convierte PC a línea fuente, respetando labels y líneas vacías."""
         if pc is None:
             return None
 
@@ -89,6 +264,17 @@ class ProcessorRenderingMixin:
             instruction_index = int(pc) // 4
         except (TypeError, ValueError):
             return None
+
+        if instruction_index < 0:
+            return None
+
+        if hasattr(self, "engine") and self.engine is not None:
+            line_numbers = getattr(self.engine, "instruction_line_numbers", {})
+            original_line = line_numbers.get(instruction_index)
+
+            if original_line is not None:
+                # QTextDocument usa indices de bloque desde cero.
+                return original_line - 1
 
         current_index = 0
 
@@ -116,6 +302,7 @@ class ProcessorRenderingMixin:
             
     # ACTUALIZAR PIPELINE
     def update_pipeline_table(self):
+        """Refresca la tabla histórica IF/ID/EX/MEM/WB."""
 
         self.pipeline.setRowCount(len(self.pipeline_data))
 
@@ -159,6 +346,7 @@ class ProcessorRenderingMixin:
 
     # ACTUALIZAR ESTADO PIPELINE
     def update_pipeline_state(self, snapshot):
+        """Actualiza la vista compacta de etapa actual para cada arquitectura."""
 
         # MULTICICLO
         if hasattr(snapshot, "stage") and snapshot.stage is not None:
@@ -300,25 +488,7 @@ class ProcessorRenderingMixin:
                 """)
 
         # HAZARDS Y FORWARDING
-        if hasattr(snapshot, "stalled") and snapshot.stalled:
-            self.hazard_box.addItem(
-                "Stall detectado (load-use hazard)"
-            )
-
-        if hasattr(snapshot, "flushed") and snapshot.flushed:
-            self.hazard_box.addItem(
-                "Flush por branch tomado"
-            )
-
-        if hasattr(snapshot, "forward_a") and snapshot.forward_a != "ID/EX":
-            self.hazard_box.addItem(
-                f"Forward A desde {snapshot.forward_a}"
-            )
-
-        if hasattr(snapshot, "forward_b") and snapshot.forward_b != "ID/EX":
-            self.hazard_box.addItem(
-                f"Forward B desde {snapshot.forward_b}"
-            )
+        self._record_hazards_from_snapshot(snapshot)
 
     # ACTUALIZAR METRICAS
     def update_metrics(self, snapshot):
@@ -342,23 +512,26 @@ class ProcessorRenderingMixin:
 
         cycles       = metrics.get("cycles", 0)
         instructions = metrics.get("instructions", 0)
-        # Tiempo total acumulado instruccion a instruccion (ps)
+        # Tiempo total acumulado como ciclos ejecutados * periodo de reloj.
         total_ps     = metrics.get("time_ps", 0)
 
         cpi = 0
         if instructions > 0:
             cpi = round(cycles / instructions, 2)
+        ipc = round(metrics.get("ipc", 0), 2)
 
         self.metric_cycles.set_value(cycles)
         self.metric_instructions.set_value(instructions)
         self.metric_cpi.set_value(cpi)
+        if hasattr(self, "metric_ipc"):
+            self.metric_ipc.set_value(ipc)
 
-        # "Tiempo" = periodo de un ciclo de reloj (ruta critica del procesador)
+        # "Tiempo" = periodo de un ciclo de reloj.
         self.metric_time.set_value(fmt_time(clock_ps))
 
         self.metric_pc.set_value(hex(snapshot.pc))
 
-        # "Tiempo Total" = suma de rutas criticas de instrucciones completadas
+        # "Tiempo Total" = ciclos ejecutados por periodo de reloj.
         self.metric_total.set_value(fmt_time(total_ps))
     
     # ACTUALIZAR REGISTROS

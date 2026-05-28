@@ -8,7 +8,6 @@ inmediato.
 
 from dataclasses import replace
 
-from src.assembler import ControlSignals
 from src.core.latency import PIPELINE_LATENCY_PS
 from src.pipeline.forwarding_unit import resolve_forwarding
 from src.pipeline.hazard_detection import detect_load_use_hazard
@@ -23,8 +22,9 @@ from src.pipeline.stages import (
 from src.processors.processor_engine import ProcessorEngine
 from src.processors.processor_snapshot import ProcessorSnapshot
 
+
 class PipelineForwardingEngine(ProcessorEngine):
-    """Cada step() representa un ciclo completo con forwarding en EX."""
+    """Ejecuta un pipeline de cinco etapas con forwarding en EX."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -33,6 +33,7 @@ class PipelineForwardingEngine(ProcessorEngine):
         self.processor_snapshot = self.get_snapshot()
 
     def _init_pipeline_registers(self) -> None:
+        """Inicializa los registros y banderas visibles en snapshots."""
         self._if_id: IF_ID = IF_ID()
         self._id_ex: ID_EX = ID_EX()
         self._ex_mem: EX_MEM = EX_MEM()
@@ -61,11 +62,13 @@ class PipelineForwardingEngine(ProcessorEngine):
         self._forward_a = "ID/EX"
         self._forward_b = "ID/EX"
 
-        # WB escribe al inicio del ciclo, como en PipelineStallEngine.
+        # WB escribe al inicio del ciclo para que ID lea valores ya confirmados.
         stage_writeback(self._mem_wb, self.register_bank)
 
         next_mem_wb = stage_memory(self._ex_mem, self.memory)
 
+        # La unidad de forwarding reemplaza operandos de EX cuando el dato mas
+        # reciente todavia esta en EX/MEM o MEM/WB.
         forwarding = resolve_forwarding(self._id_ex, self._ex_mem, self._mem_wb)
         self._forward_a = forwarding.forward_a
         self._forward_b = forwarding.forward_b
@@ -78,7 +81,8 @@ class PipelineForwardingEngine(ProcessorEngine):
             self.control_signals = self._mem_wb.control
             self.metrics.count_instruction()
 
-        # ---- Control hazard: branch tomado -> flush de IF_ID e ID_EX ----
+        # Si el branch se toma, las instrucciones especulativas en IF e ID se
+        # limpian antes de avanzar el resto del pipeline.
         if branch_taken:
             self._flushed = True
             self.pc = branch_target
@@ -99,7 +103,8 @@ class PipelineForwardingEngine(ProcessorEngine):
             self.processor_snapshot = self.get_snapshot()
             return True
 
-        # ---- Load-use hazard: unico stall de datos del modelo con forwarding ----
+        # Forwarding no puede resolver un load-use inmediato porque el dato de
+        # memoria aun no existe cuando la instruccion dependiente entra a EX.
         if detect_load_use_hazard(self._if_id, self._id_ex, self.decoder):
             self._stalled = True
             self.metrics.count_stall()
@@ -112,7 +117,7 @@ class PipelineForwardingEngine(ProcessorEngine):
                 next_ex_mem,
                 next_mem_wb,
             )
-            # Congela PC e IF_ID; inserta burbuja en ID_EX
+            # Se congela PC/IF_ID e ID_EX recibe una burbuja de un ciclo.
             self._id_ex = ID_EX()
             self._ex_mem = next_ex_mem
             self._mem_wb = next_mem_wb
@@ -143,7 +148,7 @@ class PipelineForwardingEngine(ProcessorEngine):
         self.metrics.count_cycle()
         self.metrics.add_time(PIPELINE_LATENCY_PS)
 
-        # Guardar estado ACTUAL antes del avance
+        # La fila historica refleja el estado visible durante este ciclo.
         self.record_pipeline_state(
             fetched_instruction,
             self._if_id,
@@ -152,7 +157,7 @@ class PipelineForwardingEngine(ProcessorEngine):
             self._mem_wb
         )
 
-        # Ahora sí avanzar pipeline
+        # Los registros avanzan juntos al final del ciclo simulado.
         self._if_id = next_if_id
         self._id_ex = next_id_ex
         self._ex_mem = next_ex_mem
@@ -161,10 +166,8 @@ class PipelineForwardingEngine(ProcessorEngine):
 
         return True
 
-    # run() se hereda de ProcessorEngine: con is_program_finished() sobrescrita
-    # ("pipeline vacio + PC fuera de rango") drena el pipeline correctamente.
-
     def get_snapshot(self) -> ProcessorSnapshot:
+        """Construye el estado consumido por pruebas y UI."""
         return ProcessorSnapshot(
             pc=self.pc,
             metrics=self.metrics,

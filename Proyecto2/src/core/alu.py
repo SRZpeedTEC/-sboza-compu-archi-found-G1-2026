@@ -2,17 +2,15 @@ import operator
 
 
 class ALU:
-    """Implementación de la Unidad Aritmético Lógica (ALU)."""
+    """Implementacion de la Unidad Aritmetico Logica (ALU)."""
 
-    # Tabla de operaciones soportadas por la ALU. Se puede extender fácilmente
-    
+    # La tabla centraliza la seleccion de operacion que viene de ControlUnit.
     _OPERATIONS = {
         "ADD": operator.add,
         "SUB": operator.sub,
         "AND": operator.and_,
         "OR": operator.or_,
         "XOR": operator.xor,
-        
     }
 
     def execute(self, operation: str, a: int, b: int) -> int:

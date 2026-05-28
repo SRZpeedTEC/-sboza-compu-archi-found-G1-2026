@@ -144,7 +144,7 @@ def _print_comparison(source_code: str, forwarding_engine: PipelineForwardingEng
     print("  - FLUSH aparece cuando un branch tomado limpia instrucciones especulativas.")
 
 
-def run_debug_program() -> None:
+def run_reference_report() -> None:
     source_code = ASM_PATH.read_text(encoding="utf-8")
     engine = PipelineForwardingEngine()
     engine.load_program(source_code)
@@ -168,4 +168,4 @@ def run_debug_program() -> None:
 
 
 if __name__ == "__main__":
-    run_debug_program()
+    run_reference_report()

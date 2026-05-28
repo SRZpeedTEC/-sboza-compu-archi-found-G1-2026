@@ -31,6 +31,11 @@ BRANCH_OPCODES = {"beq", "bne"}
 
 
 def map_single_cycle_datapath_state(snapshot) -> dict:
+    """Traduce el snapshot uniciclo a datos simples para la vista Qt.
+
+    El mapper es tolerante a ``None`` y a campos faltantes para que la UI pueda
+    mostrar guiones durante reset o antes de ejecutar.
+    """
     instruction = _get(snapshot, "current_instruction")
     trace = _get(snapshot, "single_cycle_trace") or {}
     control = _control_snapshot(_get(snapshot, "control_signals"))

@@ -33,7 +33,7 @@ BRANCH_COMPARATOR   = 50
 PC_ADDER            = 30
 
 # ---------------------------------------------------------------------------
-# Caminos criticos por tipo de instruccion en el procesador UNICICLO
+# Caminos criticos usados para fijar el periodo del procesador UNICICLO
 #
 # Convencion: los MUX de seleccion (ALUSrcA, ALUSrcB, ResultSrc, PCsrc)
 # se incluyen en el camino porque cada etapa espera a todos sus inputs.
@@ -43,34 +43,65 @@ PC_ADDER            = 30
 # ---------------------------------------------------------------------------
 
 # R-type (add, sub, and, or, xor):
-#   PC → IM → RegFile_read → ALUSrcB_MUX → ALU → ResultSrc_MUX → RegFile_write
-_PATH_RTYPE   = (PC_READ + INSTRUCTION_MEMORY + REGISTER_FILE_READ
-                 + MUX + ALU + MUX + REGISTER_FILE_WRITE)          # 730 ps
+#   PC -> IM -> RegFile_read -> ALUSrcB_MUX -> ALU -> ResultSrc_MUX -> RegFile_write
+_PATH_RTYPE = (
+    PC_READ
+    + INSTRUCTION_MEMORY
+    + REGISTER_FILE_READ
+    + MUX
+    + ALU
+    + MUX
+    + REGISTER_FILE_WRITE
+)  # 730 ps
 
-# I-type aritmetico (addi):
-#   igual a R-type: RegFile_read (150) domina sobre ImmGen (20)
-_PATH_ITYPE   = _PATH_RTYPE                                         # 730 ps
+# I-type aritmetico (addi): RegFile_read (150) domina sobre ImmGen (20).
+_PATH_ITYPE = _PATH_RTYPE  # 730 ps
 
 # lw:
-#   PC → IM → RegFile_read → ALUSrcB_MUX → ALU → DataMem_read → ResultSrc_MUX → RegFile_write
-_PATH_LW      = (PC_READ + INSTRUCTION_MEMORY + REGISTER_FILE_READ
-                 + MUX + ALU + DATA_MEMORY_READ + MUX + REGISTER_FILE_WRITE)  # 980 ps
+#   PC -> IM -> RegFile_read -> ALUSrcB_MUX -> ALU -> DataMem_read
+#      -> ResultSrc_MUX -> RegFile_write
+_PATH_LW = (
+    PC_READ
+    + INSTRUCTION_MEMORY
+    + REGISTER_FILE_READ
+    + MUX
+    + ALU
+    + DATA_MEMORY_READ
+    + MUX
+    + REGISTER_FILE_WRITE
+)  # 980 ps
 
 # sw:
-#   PC → IM → RegFile_read → ALUSrcB_MUX → ALU → DataMem_write  (sin WB)
-_PATH_SW      = (PC_READ + INSTRUCTION_MEMORY + REGISTER_FILE_READ
-                 + MUX + ALU + DATA_MEMORY_WRITE)                   # 855 ps
+#   PC -> IM -> RegFile_read -> ALUSrcB_MUX -> ALU -> DataMem_write
+_PATH_SW = (
+    PC_READ
+    + INSTRUCTION_MEMORY
+    + REGISTER_FILE_READ
+    + MUX
+    + ALU
+    + DATA_MEMORY_WRITE
+)  # 855 ps
 
 # beq / bne:
-#   Camino condicion: PC → IM → RegFile_read → BranchComp → PCsrc_MUX
-#   Camino destino:   PC → IM → ImmGen → PC_Adder → PCsrc_MUX
-_PATH_BRANCH_COND   = (PC_READ + INSTRUCTION_MEMORY + REGISTER_FILE_READ
-                       + BRANCH_COMPARATOR + MUX)                   # 455 ps
-_PATH_BRANCH_TARGET = (PC_READ + INSTRUCTION_MEMORY
-                       + IMMEDIATE_GEN + PC_ADDER + MUX)            # 305 ps
-_PATH_BRANCH  = max(_PATH_BRANCH_COND, _PATH_BRANCH_TARGET)         # 455 ps
+#   Camino condicion: PC -> IM -> RegFile_read -> BranchComp -> PCsrc_MUX
+#   Camino destino:   PC -> IM -> ImmGen -> PC_Adder -> PCsrc_MUX
+_PATH_BRANCH_COND = (
+    PC_READ
+    + INSTRUCTION_MEMORY
+    + REGISTER_FILE_READ
+    + BRANCH_COMPARATOR
+    + MUX
+)  # 455 ps
+_PATH_BRANCH_TARGET = (
+    PC_READ
+    + INSTRUCTION_MEMORY
+    + IMMEDIATE_GEN
+    + PC_ADDER
+    + MUX
+)  # 305 ps
+_PATH_BRANCH = max(_PATH_BRANCH_COND, _PATH_BRANCH_TARGET)  # 455 ps
 
-# Periodo del reloj uniciclo = camino critico mas largo (dominado por lw)
+# Periodo del reloj uniciclo = camino critico mas largo (dominado por lw).
 CLOCK_PERIOD_SINGLE_CYCLE: int = max(
     _PATH_RTYPE,
     _PATH_ITYPE,
@@ -86,16 +117,16 @@ CLOCK_PERIOD_SINGLE_CYCLE: int = max(
 #
 # Etapa IF:  AdrSrc_MUX + IM
 # Etapa ID:  RegFile_read  (domina sobre ImmGen y ControlUnit)
-# Etapa EX:  ALUSrcA_MUX + ALU  (ALUSrcB_MUX corre en paralelo, mismo resultado)
+# Etapa EX:  ALUSrcA_MUX + ALU  (ALUSrcB_MUX corre en paralelo)
 # Etapa MEM: AdrSrc_MUX + DataMem_read   <- etapa critica
 # Etapa WB:  ResultSrc_MUX + RegFile_write
 # ---------------------------------------------------------------------------
 
 STAGE_IF_PS  = MUX + INSTRUCTION_MEMORY    # 225 ps
 STAGE_ID_PS  = REGISTER_FILE_READ          # 150 ps
-STAGE_EX_PS  = MUX + ALU                  # 225 ps
-STAGE_MEM_PS = MUX + DATA_MEMORY_READ      # 275 ps  <- critica
-STAGE_WB_PS  = MUX + REGISTER_FILE_WRITE  # 125 ps
+STAGE_EX_PS  = MUX + ALU                   # 225 ps
+STAGE_MEM_PS = MUX + DATA_MEMORY_READ      # 275 ps
+STAGE_WB_PS  = MUX + REGISTER_FILE_WRITE   # 125 ps
 
 CLOCK_PERIOD_MULTICYCLE: int = max(
     STAGE_IF_PS,
@@ -105,49 +136,20 @@ CLOCK_PERIOD_MULTICYCLE: int = max(
     STAGE_WB_PS,
 )  # 275 ps
 
-# Pipeline usa el mismo periodo (misma etapa critica: MEM)
+# Pipeline usa el mismo periodo porque comparte la etapa critica de MEM.
 CLOCK_PERIOD_PIPELINE: int = CLOCK_PERIOD_MULTICYCLE  # 275 ps
 
 # ---------------------------------------------------------------------------
-# Ruta critica por opcode  (se acumula en Metrics.time_ps)
+# Tiempo acumulado en Metrics.time_ps
 # ---------------------------------------------------------------------------
-
-# Uniciclo: camino real de cada instruccion (ps)
-SINGLE_CYCLE_LATENCY_PS: dict[str, int] = {
-    "add":  _PATH_RTYPE,    # 730
-    "sub":  _PATH_RTYPE,    # 730
-    "and":  _PATH_RTYPE,    # 730
-    "or":   _PATH_RTYPE,    # 730
-    "xor":  _PATH_RTYPE,    # 730
-    "addi": _PATH_ITYPE,    # 730
-    "lw":   _PATH_LW,       # 980  <- mas lento
-    "sw":   _PATH_SW,       # 855
-    "beq":  _PATH_BRANCH,   # 455
-    "bne":  _PATH_BRANCH,   # 455
-}
-
-# Multiciclo: n_etapas * periodo_de_reloj (cada etapa = 1 ciclo de 275 ps)
-#   R-type / addi / sw  → 4 etapas
-#   lw                  → 5 etapas
-#   beq / bne           → 3 etapas
-MULTICYCLE_LATENCY_PS: dict[str, int] = {
-    "add":  4 * CLOCK_PERIOD_MULTICYCLE,   # 1100
-    "sub":  4 * CLOCK_PERIOD_MULTICYCLE,
-    "and":  4 * CLOCK_PERIOD_MULTICYCLE,
-    "or":   4 * CLOCK_PERIOD_MULTICYCLE,
-    "xor":  4 * CLOCK_PERIOD_MULTICYCLE,
-    "addi": 4 * CLOCK_PERIOD_MULTICYCLE,   # 1100
-    "lw":   5 * CLOCK_PERIOD_MULTICYCLE,   # 1375
-    "sw":   4 * CLOCK_PERIOD_MULTICYCLE,   # 1100
-    "beq":  3 * CLOCK_PERIOD_MULTICYCLE,   # 825
-    "bne":  3 * CLOCK_PERIOD_MULTICYCLE,   # 825
-}
-
-# Pipeline: 1 ciclo de reloj por instruccion (estado estacionario).
-# Las burbujas y flushes se reflejan en el CPI pero no en el tiempo
-# atribuido por instruccion (eso es correcto: el tiempo real = cycles*275,
-# pero la contribucion de una instruccion al throughput = 1 ciclo).
-PIPELINE_LATENCY_PS: int = CLOCK_PERIOD_PIPELINE   # 275
+#
+# Todos los procesadores suman tiempo por ciclo de reloj ejecutado:
+#   Uniciclo:   1 ciclo por instruccion, periodo 980 ps.
+#   Multiciclo: 1 ciclo por etapa, periodo 275 ps.
+#   Pipeline:   1 ciclo por avance del pipeline, periodo 275 ps.
+# Las diferencias entre instrucciones se reflejan en la cantidad de ciclos, no
+# en una latencia especial por tipo de instruccion.
+PIPELINE_LATENCY_PS: int = CLOCK_PERIOD_PIPELINE
 
 # ---------------------------------------------------------------------------
 # Utilidad: formato legible
@@ -156,8 +158,8 @@ PIPELINE_LATENCY_PS: int = CLOCK_PERIOD_PIPELINE   # 275
 def fmt_time(ps: int | float) -> str:
     """Convierte picosegundos a cadena legible.
 
-    < 1000 ps  ->  "XXX ps"
-    >= 1000 ps ->  "X.XXX ns"  (sin ceros finales)
+    < 1000 ps  ->  "N ps"
+    >= 1000 ps ->  "X.NNN ns"  (sin ceros finales)
     """
     if ps == 0:
         return "0 ps"

@@ -11,7 +11,8 @@ class Metrics:
     ipc: float = 0
     stalls: int = 0
     hazards: int = 0
-    time_ps: int = 0   # tiempo acumulado en picosegundos (suma de rutas criticas)
+    time_ps: int = 0   # tiempo acumulado en picosegundos (ciclos * periodo)
+    stopped_by_cycle_limit: bool = False
 
     def count_cycle(self) -> None:
         self.cycles += 1
@@ -20,7 +21,7 @@ class Metrics:
         self.instructions += 1
 
     def add_time(self, ps: int) -> None:
-        """Suma la ruta critica de la instruccion que acaba de completarse."""
+        """Suma el tiempo de un ciclo de reloj simulado."""
         self.time_ps += ps
 
     def count_stall(self) -> None:
@@ -37,6 +38,7 @@ class Metrics:
         self.stalls = 0
         self.hazards = 0
         self.time_ps = 0
+        self.stopped_by_cycle_limit = False
 
     def update_cpi(self) -> None:
         self.cpi = self.cycles / self.instructions if self.instructions > 0 else 0

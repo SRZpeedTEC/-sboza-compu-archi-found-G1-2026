@@ -89,13 +89,13 @@ class SingleCycleDatapathView(QWidget):
             ("alu_src_mux", "alu", [(750, 209), (790, 209)]),
             ("alu", "data_memory", [(940, 209), (980, 209)]),
             ("data_memory", "result_src_mux", [(1130, 209), (1170, 209)]),
-            ("immediate", "alu_src_mux", [(717, 282), (717, 270)]),
+            ("immediate", "alu_src_mux", [(717, 282), (717, 257)]),
             ("control_unit", "register_file", [(525, 130), (525, 146)]),
-            ("control_unit", "alu_src_mux", [(595, 76), (700, 76), (700, 148)]),
+            ("control_unit", "alu_src_mux", [(595, 76), (700, 76), (700, 158)]),
             ("control_unit", "alu", [(595, 54), (865, 54), (865, 146)]),
             ("control_unit", "data_memory", [(595, 34), (1055, 34), (1055, 146)]),
-            ("control_unit", "result_src_mux", [(595, 20), (1222, 20), (1222, 148)]),
-            ("control_unit", "pc_src_mux", [(345, 64), (64, 64), (64, 148)]),
+            ("control_unit", "result_src_mux", [(595, 20), (1222, 20), (1222, 158)]),
+            ("control_unit", "pc_src_mux", [(345, 64), (64, 64), (64, 158)]),
         ]
 
         for source, target, points in paths:

@@ -17,7 +17,7 @@ class IF_ID:
     Contiene el string crudo de la instruccion y el PC con el que fue
     fetcheada. instruction=None indica stall (NOP).
     """
-    instruction: str | None = None   # raw string; None = stall
+    instruction: str | None = None   # texto original; None = burbuja/stall
     pc: int = 0                      # PC de la instruccion
 
     def to_dict(self) -> dict:
@@ -69,6 +69,7 @@ class EX_MEM:
     alu_result: int = 0
     b: int = 0            # valor de rs2, usado por SW en MEM
     rd: str | None = None
+    pc: int = 0
 
     def to_dict(self) -> dict:
         """Vista serializable del registro (opcode None en burbuja)."""
@@ -77,6 +78,7 @@ class EX_MEM:
             "alu_result": self.alu_result,
             "b": self.b,
             "rd": self.rd,
+            "pc": self.pc,
         }
 
 
@@ -92,6 +94,7 @@ class MEM_WB:
     alu_result: int = 0
     mem_data: int = 0
     rd: str | None = None
+    pc: int = 0
 
     def to_dict(self) -> dict:
         """Vista serializable del registro (opcode None en burbuja)."""
@@ -100,4 +103,5 @@ class MEM_WB:
             "alu_result": self.alu_result,
             "mem_data": self.mem_data,
             "rd": self.rd,
+            "pc": self.pc,
         }

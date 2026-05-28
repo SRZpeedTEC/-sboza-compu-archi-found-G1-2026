@@ -28,7 +28,7 @@ def _opcode(stage_dict: dict) -> str:
     return str(op)[:18] if op else "bubble"
 
 
-def run_debug_program() -> None:
+def run_reference_report() -> None:
     source_code = ASM_PATH.read_text(encoding="utf-8")
     engine = PipelineStallEngine()
     engine.load_program(source_code)
@@ -100,4 +100,4 @@ def run_debug_program() -> None:
 
 
 if __name__ == "__main__":
-    run_debug_program()
+    run_reference_report()

@@ -1,14 +1,13 @@
-"""Deteccion de hazards de datos para pipeline con stall.
+"""Deteccion de hazards de datos para pipelines de cinco etapas.
 
-Las dependencias RAW (Read-After-Write) entre una instruccion
-en ID y una instruccion que todavia no ha completado WB debe resuelven
-congelando el pipeline con un stall. El stall se detecta comparando los registros
-destino de las instrucciones en EX y MEM contra los registros fuente de la
-instruccion actualmente en ID.
+El pipeline maneja dependencias RAW (Read-After-Write). En el modelo con stalls
+se congela IF/ID y se inserta una burbuja en ID/EX hasta que el productor pueda
+escribir. En el modelo con forwarding solo se necesita stall para load-use,
+porque el dato de memoria no esta disponible a tiempo para EX.
 """
 
-from src.pipeline.pipeline_registers import IF_ID, ID_EX, EX_MEM
 from src.assembler import Instruction
+from src.pipeline.pipeline_registers import EX_MEM, ID_EX, IF_ID
 
 
 def detect_data_hazard(
@@ -17,94 +16,80 @@ def detect_data_hazard(
     ex_mem: EX_MEM,
     decoder,
 ) -> bool:
+    """Detecta RAW que requiere stall en pipeline sin forwarding.
 
-    if if_id.instruction is None:
+    IF/ID contiene la instruccion consumidora. ID/EX y EX/MEM contienen
+    productores que aun no han llegado a WB, por eso sus destinos se comparan
+    contra rs1/rs2 de la consumidora.
+    """
+    consumer = _decode_if_needed(if_id.instruction, decoder)
+
+    if consumer is None:
         return False
 
-    consumer = if_id.instruction
-
-    # Si viene como string se decodifica
-    if isinstance(consumer, str):
-        try:
-            consumer = decoder.decode(consumer)
-        except:
-            return False
-
-    # REGISTROS FUENTE
-    src_regs = {
-        reg for reg in (consumer.rs1, consumer.rs2)
-        if reg is not None and reg != "x0"
-    }
+    src_regs = _source_registers(consumer)
 
     if not src_regs:
         return False
 
-    # HAZARD CON EX
-    if (
-        id_ex.control is not None
-        and id_ex.control.reg_write
-        and id_ex.rd is not None
-        and id_ex.rd != "x0"
-        and id_ex.rd in src_regs
-    ):
-        print("HAZARD DETECTED WITH EX:", id_ex.rd)
+    if _writes_register(id_ex) and id_ex.rd in src_regs:
         return True
 
-    # HAZARD CON MEM
-    if (
-        ex_mem.control is not None
-        and ex_mem.control.reg_write
-        and ex_mem.rd is not None
-        and ex_mem.rd != "x0"
-        and ex_mem.rd in src_regs
-    ):
-        print("HAZARD DETECTED WITH MEM:", ex_mem.rd)
+    if _writes_register(ex_mem) and ex_mem.rd in src_regs:
         return True
 
     return False
 
 
-def detect_load_use_hazard(if_id, id_ex, decoder) -> bool:
+def detect_load_use_hazard(if_id: IF_ID, id_ex: ID_EX, decoder) -> bool:
+    """Detecta el caso load-use que forwarding no puede resolver.
 
-    # Nada en IF/ID
-    if if_id.instruction is None:
+    Si un lw esta en ID/EX, el dato aparece hasta MEM. La instruccion en IF/ID
+    que lo usa en el ciclo siguiente no puede recibirlo a tiempo para EX, por
+    eso se congela un ciclo aun en el pipeline con forwarding.
+    """
+    consumer = _decode_if_needed(if_id.instruction, decoder)
+
+    if consumer is None or id_ex.instruction is None or id_ex.control is None:
         return False
 
-    # Nada en ID/EX
-    if id_ex.instruction is None:
+    if not id_ex.control.mem_read or id_ex.rd in (None, "x0"):
         return False
 
-    # Sin señales de control
-    if id_ex.control is None:
-        return False
+    return id_ex.rd in _source_registers(consumer)
 
-    # Debe ser un load
-    if not id_ex.control.mem_read:
-        return False
 
-    # Registro destino del lw
-    producer_rd = id_ex.rd
+def _decode_if_needed(instruction, decoder) -> Instruction | None:
+    """IF/ID guarda texto crudo; para hazards se necesitan rs1 y rs2."""
+    if instruction is None:
+        return None
 
-    if producer_rd is None or producer_rd == "x0":
-        return False
+    if isinstance(instruction, Instruction):
+        return instruction
 
-    consumer = if_id.instruction
-
-    # IF/ID transporta el string crudo: se decodifica para leer sus fuentes,
-    # igual que hace detect_data_hazard.
-    if isinstance(consumer, str):
+    if isinstance(instruction, str):
         try:
-            consumer = decoder.decode(consumer)
+            return decoder.decode(instruction)
         except Exception:
-            return False
+            # Una instruccion invalida no debe romper la deteccion de hazards;
+            # el parser/decoder principal reporta el error en el flujo normal.
+            return None
 
-    rs1 = getattr(consumer, "rs1", None)
-    rs2 = getattr(consumer, "rs2", None)
+    return None
 
-    if rs1 == producer_rd:
-        return True
 
-    if rs2 == producer_rd:
-        return True
+def _source_registers(instruction: Instruction) -> set[str]:
+    """Devuelve registros fuente reales; x0 se ignora porque nunca cambia."""
+    return {
+        reg for reg in (instruction.rs1, instruction.rs2)
+        if reg is not None and reg != "x0"
+    }
 
-    return False
+
+def _writes_register(pipe_reg) -> bool:
+    """Indica si una etapa pendiente escribira un registro arquitectonico."""
+    return (
+        pipe_reg.control is not None
+        and pipe_reg.control.reg_write
+        and pipe_reg.rd not in (None, "x0")
+    )

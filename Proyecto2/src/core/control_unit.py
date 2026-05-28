@@ -72,5 +72,5 @@ class ControlUnit:
 
         raise ValueError(
             f"No hay senales de control definidas para opcode '{opcode}' "
-            f"en instruccion {instruction.completeInstruction!r}."
+            f"en instruccion {instruction.complete_instruction!r}."
         )

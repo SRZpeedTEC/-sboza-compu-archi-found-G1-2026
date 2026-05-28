@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import *
 
 from src.UI.pages.comparison_page import ComparisonPage
@@ -7,6 +7,8 @@ from src.UI.styles.theme import STYLE
 
 
 class MainWindow(QMainWindow):
+    """Ventana principal: coordina pestañas, modo de ejecución e historial."""
+
     def __init__(self):
         super().__init__()
 
@@ -17,18 +19,23 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(STYLE)
 
         central = QWidget()
+        central.setObjectName("centralBackground")
 
         # SCROLL AREA
         scroll = QScrollArea()
+        scroll.setObjectName("mainScrollArea")
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
+        scroll.viewport().setObjectName("mainScrollViewport")
 
         # CONTENIDO
         content = QWidget()
+        content.setObjectName("mainScrollContent")
         main_layout = QVBoxLayout(content)
 
         main_layout.setSpacing(20)
         main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setAlignment(Qt.AlignTop)
 
         # TOP CARD
         top_card = QFrame()
@@ -66,10 +73,29 @@ class MainWindow(QMainWindow):
         )
         top_layout.addWidget(self.mode)
 
+        self.speed_label = QLabel("ms per step")
+        self.speed_label.setObjectName("speedLabel")
+
+        self.automatic_speed = QSpinBox()
+        self.automatic_speed.setRange(100, 1000)
+        self.automatic_speed.setSingleStep(100)
+        self.automatic_speed.setValue(300)
+        self.automatic_speed.setSuffix(" ms")
+        self.automatic_speed.setToolTip(
+            "Delay per cycle in automatic mode"
+        )
+        self.automatic_speed.setFixedWidth(130)
+        self.automatic_speed.valueChanged.connect(
+            self.automatic_speed_changed
+        )
+
+        top_layout.addWidget(self.speed_label)
+        top_layout.addWidget(self.automatic_speed)
+
         top_card.setLayout(top_layout)
 
         # TABS PRINCIPALES
-        main_tabs = QTabWidget()
+        self.main_tabs = QTabWidget()
 
         self.proc_a = ProcessorPage(
             "Procesador A",
@@ -86,9 +112,18 @@ class MainWindow(QMainWindow):
             self.proc_b
         )
         
-        main_tabs.addTab(self.proc_a, "Procesador A")
-        main_tabs.addTab(self.proc_b, "Procesador B")
-        main_tabs.addTab(self.comparison, "Comparación")
+        self.main_tabs.addTab(self.proc_a, "Procesador A")
+        self.main_tabs.addTab(self.proc_b, "Procesador B")
+        self.main_tabs.addTab(self.comparison, "Comparación")
+        self.main_tabs.currentChanged.connect(
+            self._resize_tabs_to_current_page
+        )
+        self.proc_a.selector.currentIndexChanged.connect(
+            self._resize_tabs_to_current_page
+        )
+        self.proc_b.selector.currentIndexChanged.connect(
+            self._resize_tabs_to_current_page
+        )
 
         # HISTORIAL
         history_card = QFrame()
@@ -101,18 +136,27 @@ class MainWindow(QMainWindow):
         history_title = QLabel("Historial de Ejecuciones")
         history_title.setObjectName("sectionTitle")
 
-        # Scroll area que contiene las tarjetas de cada ejecucion
+        # El historial vive en su propio scroll para no estirar la pagina activa.
         self.history_scroll = QScrollArea()
+        self.history_scroll.setObjectName("historyScroll")
         self.history_scroll.setWidgetResizable(True)
         self.history_scroll.setFrameShape(QFrame.NoFrame)
         self.history_scroll.setMinimumHeight(180)
         self.history_scroll.setMaximumHeight(240)
+        self.history_scroll.viewport().setObjectName("historyViewport")
 
         self.history_container = QWidget()
+        self.history_container.setObjectName("historyContainer")
         self.history_inner = QVBoxLayout(self.history_container)
         self.history_inner.setContentsMargins(0, 0, 0, 0)
         self.history_inner.setSpacing(6)
-        self.history_inner.addStretch()   # empuja las tarjetas hacia arriba
+        self.history_entries = []
+
+        self.history_empty_label = QLabel("No executions yet.")
+        self.history_empty_label.setObjectName("emptyHistoryLabel")
+        self.history_empty_label.setAlignment(Qt.AlignCenter)
+        self.history_inner.addWidget(self.history_empty_label)
+        self.history_inner.addStretch()   # Mantiene las tarjetas alineadas arriba.
 
         self.history_scroll.setWidget(self.history_container)
 
@@ -123,7 +167,7 @@ class MainWindow(QMainWindow):
         # MAIN
         main_layout.addWidget(top_card)
         main_layout.addSpacing(15)
-        main_layout.addWidget(main_tabs)
+        main_layout.addWidget(self.main_tabs)
         main_layout.addWidget(history_card)
 
         content.setLayout(main_layout)
@@ -140,6 +184,7 @@ class MainWindow(QMainWindow):
         self.proc_b.comparison_page = self.comparison
         self.proc_a.main_window = self
         self.proc_b.main_window = self
+        QTimer.singleShot(0, self._resize_tabs_to_current_page)
 
     # Badge por arquitectura: (texto_corto, color_hex)
     _ARCH_BADGE = {
@@ -162,8 +207,9 @@ class MainWindow(QMainWindow):
         """
         arch = entry.get("architecture", "?")
         badge_text, badge_color = self._ARCH_BADGE.get(arch, ("?", "#aaaaaa"))
+        self.history_empty_label.hide()
 
-        # ---- Tarjeta ----
+        # La tarjeta conserva los colores por arquitectura sin tocar el tema global.
         card = QFrame()
         card.setStyleSheet(f"""
             QFrame {{
@@ -178,7 +224,6 @@ class MainWindow(QMainWindow):
         card_layout.setContentsMargins(10, 8, 14, 8)
         card_layout.setSpacing(14)
 
-        # Badge de arquitectura
         badge = QLabel(badge_text)
         badge.setFixedSize(42, 42)
         badge.setAlignment(Qt.AlignCenter)
@@ -191,90 +236,134 @@ class MainWindow(QMainWindow):
             border: none;
         """)
 
-        # Info
         info_col = QVBoxLayout()
         info_col.setSpacing(3)
 
-        name_lbl = QLabel(
-            f"<b>{entry.get('processor', '?')}</b>"
-            f"  —  {arch}"
-        )
+        name_lbl = QLabel()
         name_lbl.setStyleSheet("font-size: 10pt; color: #22264a; border: none;")
-
-        metrics_lbl = QLabel(
-            f"Ciclos: <b>{entry.get('cycles', 0)}</b>"
-            f"   |   Instrucciones: <b>{entry.get('instructions', 0)}</b>"
-            f"   |   CPI: <b>{entry.get('cpi', '—')}</b>"
-            f"   |   Tiempo total: <b>{entry.get('total_time', '—')}</b>"
+        name_lbl.setText(
+            f"<b>{entry.get('processor', '?')}</b>"
+            f"  -  {arch}"
+            f"  |  Estado: <b>{entry.get('status', '-')}</b>"
         )
+        name_lbl.setTextFormat(Qt.RichText)
+
+        metrics_lbl = QLabel()
         metrics_lbl.setStyleSheet("font-size: 9pt; color: #556699; border: none;")
+        metrics_lbl.setText(
+            f"Ciclos: <b>{entry.get('cycles', '-')}</b>"
+            f"   |   Instrucciones: <b>{entry.get('instructions', '-')}</b>"
+            f"   |   CPI: <b>{entry.get('cpi', '-')}</b>"
+            f"   |   IPC: <b>{entry.get('ipc', '-')}</b>"
+            f"   |   Tiempo simulado: <b>{entry.get('total_time', '-')}</b>"
+        )
         metrics_lbl.setTextFormat(Qt.RichText)
+
+        hazard_lbl = QLabel(
+            f"Stalls: <b>{entry.get('stalls', '-')}</b>"
+            f"   |   Hazards: <b>{entry.get('hazards', '-')}</b>"
+        )
+        hazard_lbl.setStyleSheet("font-size: 9pt; color: #556699; border: none;")
+        hazard_lbl.setTextFormat(Qt.RichText)
 
         info_col.addWidget(name_lbl)
         info_col.addWidget(metrics_lbl)
+        info_col.addWidget(hazard_lbl)
 
         card_layout.addWidget(badge)
         card_layout.addLayout(info_col)
         card_layout.addStretch()
 
-        # Insertar la tarjeta nueva al principio (indice 0)
+        # Insertar al principio mantiene visible la ejecucion mas reciente.
         self.history_inner.insertWidget(0, card)
+        self.history_entries.insert(0, card)
 
-        # Limitar a 10 entradas: eliminar la mas antigua (justo antes del stretch)
-        while (self.history_inner.count() - 1) > 10:
-            oldest_idx = self.history_inner.count() - 2
-            item = self.history_inner.takeAt(oldest_idx)
-            if item and item.widget():
-                item.widget().deleteLater()
+        # Limite visual: evita que el historial crezca sin control durante demos.
+        while len(self.history_entries) > 10:
+            oldest = self.history_entries.pop()
+            self.history_inner.removeWidget(oldest)
+            oldest.deleteLater()
+
+    def _resize_tabs_to_current_page(self, _index=None) -> None:
+        """Ajusta el alto del tab activo para evitar espacio vacio innecesario."""
+        if not hasattr(self, "main_tabs"):
+            return
+
+        current_page = self.main_tabs.currentWidget()
+
+        if current_page is None:
+            return
+
+        current_page.updateGeometry()
+
+        # QTabWidget toma como referencia el tab mas alto. Para comparacion,
+        # esto dejaba el historial separado por un bloque vacio.
+        page_height = max(
+            current_page.sizeHint().height(),
+            current_page.minimumSizeHint().height()
+        )
+        tab_height = self.main_tabs.tabBar().sizeHint().height()
+        frame_width = self.main_tabs.style().pixelMetric(
+            QStyle.PM_DefaultFrameWidth
+        )
+        target_height = page_height + tab_height + (frame_width * 2)
+
+        self.main_tabs.setMinimumHeight(target_height)
+        self.main_tabs.setMaximumHeight(target_height)
+
+    def automatic_speed_changed(self, value: int) -> None:
+        """Actualiza timers activos sin reiniciar la ejecucion automatica."""
+        mode = self.mode.currentText()
+
+        if not mode.startswith("Autom"):
+            return
+
+        for proc in (self.proc_a, self.proc_b):
+            proc.timer.setInterval(value)
+
+    def update_execution_buttons_for_mode(self, mode: str) -> None:
+        """Muestra solo los controles utiles para el modo seleccionado."""
+        is_step = mode == "Step by Step"
+        is_auto = mode.startswith("Autom")
+        is_complete = mode == "Completo"
+
+        all_pages = (
+            self.proc_a,
+            self.proc_b,
+            self.comparison
+        )
+
+        for page in all_pages:
+            page.step_btn.setVisible(is_step)
+            page.step_btn.setEnabled(is_step)
+
+            page.run_btn.setVisible(is_auto or is_complete)
+            page.run_btn.setEnabled(is_auto or is_complete)
+            page.run_btn.setText(
+                "⏵ Execute Complete" if is_complete else "⏵ Run"
+            )
+
+            page.stop_btn.setVisible(is_auto)
+            page.stop_btn.setEnabled(is_auto)
+
+        self.speed_label.setVisible(is_auto)
+        self.automatic_speed.setVisible(is_auto)
     
     def execution_mode_changed(self):
 
         mode = self.mode.currentText()
+        automatic_delay = self.automatic_speed.value()
 
-        processors = [
-            self.proc_a,
-            self.proc_b
-        ]
-
-        for proc in processors:
-
+        for proc in (self.proc_a, self.proc_b):
             if mode == "Step by Step":
-
-                proc.step_btn.setEnabled(True)
-                proc.run_btn.setEnabled(False)
-                proc.stop_btn.setEnabled(False)
-
-            elif mode == "Automático":
-
-                proc.step_btn.setEnabled(False)
-                proc.run_btn.setEnabled(True)
-                proc.stop_btn.setEnabled(True)
-
-                proc.timer.setInterval(400)
-
+                proc.timer.stop()
+                proc.running = False
+            elif mode.startswith("Autom"):
+                proc.timer.setInterval(automatic_delay)
             elif mode == "Completo":
-
-                proc.step_btn.setEnabled(False)
-                proc.run_btn.setEnabled(True)
-                proc.stop_btn.setEnabled(False)
-
+                proc.timer.stop()
+                proc.running = False
                 proc.timer.setInterval(1)
 
-        # BOTONES DE COMPARACION
-        if mode == "Step by Step":
-
-            self.comparison.step_btn.setEnabled(True)
-            self.comparison.run_btn.setEnabled(False)
-            self.comparison.stop_btn.setEnabled(False)
-
-        elif mode == "Automático":
-
-            self.comparison.step_btn.setEnabled(False)
-            self.comparison.run_btn.setEnabled(True)
-            self.comparison.stop_btn.setEnabled(True)
-
-        elif mode == "Completo":
-
-            self.comparison.step_btn.setEnabled(False)
-            self.comparison.run_btn.setEnabled(True)
-            self.comparison.stop_btn.setEnabled(False)
+        self.update_execution_buttons_for_mode(mode)
+        QTimer.singleShot(0, self._resize_tabs_to_current_page)

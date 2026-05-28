@@ -1,10 +1,10 @@
 from dataclasses import replace
 from enum import Enum, auto
 
-from src.core.latency import MULTICYCLE_LATENCY_PS
+from src.assembler import ControlSignals
+from src.core.latency import CLOCK_PERIOD_MULTICYCLE
 from src.processors.processor_engine import ProcessorEngine
 from src.processors.processor_snapshot import ProcessorSnapshot
-from src.assembler import ControlSignals
 
 
 class Stage(Enum):
@@ -16,16 +16,14 @@ class Stage(Enum):
 
 
 # Ciclos por tipo de instruccion:
-#   R-type / ADDI / SW  → IF → ID → EX → WB   = 4 ciclos
-#   LW                  → IF → ID → EX → MEM → WB = 5 ciclos
-#   BEQ / BNE           → IF → ID → EX          = 3 ciclos
-
-
+#   R-type / ADDI / SW: IF -> ID -> EX -> WB         = 4 ciclos
+#   LW:                  IF -> ID -> EX -> MEM -> WB = 5 ciclos
+#   BEQ / BNE:           IF -> ID -> EX              = 3 ciclos
 class MultiCycleEngine(ProcessorEngine):
-    """Procesador multiciclo: cada step() avanza exactamente un ciclo.
+    """Procesador multiciclo: cada step avanza exactamente un ciclo.
 
     La maquina de estados sigue el flujo:
-        FETCH → DECODE → EXECUTE → (MEMORY →) WRITEBACK → FETCH 
+        FETCH -> DECODE -> EXECUTE -> (MEMORY) -> WRITEBACK -> FETCH
     """
 
     def __init__(self) -> None:
@@ -33,8 +31,8 @@ class MultiCycleEngine(ProcessorEngine):
         self._init_stage_registers()
         self.processor_snapshot = self.get_snapshot()
 
-
     def _init_stage_registers(self) -> None:
+        """Inicializa registros internos entre etapas multiciclo."""
         self._stage: Stage = Stage.FETCH
         self._ir: str | None = None       # Instruction Register
         self._old_pc: int = 0             # PC antes de incrementar en FETCH
@@ -47,10 +45,8 @@ class MultiCycleEngine(ProcessorEngine):
         self._last_completed_stage: str | None = None
         self._branch_taken: bool | None = None
 
-
-    # Interfaz publica
     def step(self) -> bool:
-        #Avanza un ciclo de reloj. Retorna False cuando el programa termino.#
+        """Avanza un ciclo de reloj. Retorna False cuando el programa termino."""
         if self._stage == Stage.FETCH and self.is_program_finished():
             return False
 
@@ -69,68 +65,43 @@ class MultiCycleEngine(ProcessorEngine):
                 self._do_writeback()
 
         self.metrics.count_cycle()
+        self.metrics.add_time(CLOCK_PERIOD_MULTICYCLE)
         self.processor_snapshot = self.get_snapshot()
         return True
 
     def run(self) -> None:
-        #Ejecuta el programa completo ciclo a ciclo.#
+        """Ejecuta el programa completo ciclo a ciclo."""
         while self.step():
             pass
 
-    #recuperar datos para el snapshot
     def get_snapshot(self):
-
-        registers = []
-
-        for i in range(32):
-            registers.append(
-                self.register_bank.read(f"x{i}")
-            )
-
-        memory = {}
-
-        for index, value in enumerate(self.memory._memory):
-
-            real_address = index * 4
-
-            memory[real_address] = value
-
+        """Recupera estado visible de datapath, registros, memoria y metricas."""
         return ProcessorSnapshot(
-
             pc=self.pc,
-
             metrics=self.metrics,
-
             control_signals=self._get_multicycle_control_signals(),
-
-            registers=registers,
-
-            memory=memory,
-
+            registers=self._collect_registers(),
+            memory=self._collect_memory(),
             pipeline=self.pipeline_history,
-
             stage=self._stage.name,
-
             ir=str(self._ir) if self._ir else None,
-
             a=self._a,
-
             b=self._b,
-
             alu_out=self._alu_out,
-
             mdr=self._mdr,
-
             current_instruction=self._instruction,
-
             multi_cycle_active_stage=self._last_completed_stage,
-
             multi_cycle_old_pc=self._old_pc,
-
             multi_cycle_branch_taken=self._branch_taken,
         )
 
     def _get_multicycle_control_signals(self) -> ControlSignals:
+        """Expone senales de control para la etapa recien ejecutada.
+
+        La ejecucion multiciclo activa senales distintas por ciclo. El snapshot
+        usa `_last_completed_stage` para que la UI muestre la etapa que acaba de
+        producir efectos, no la siguiente etapa ya programada.
+        """
         stage = self._last_completed_stage
         opcode = (
             self._instruction.opcode
@@ -204,12 +175,8 @@ class MultiCycleEngine(ProcessorEngine):
 
         return base
 
-
-    # ------ Etapas de la maquina de estados ----------
-
-
     def _do_fetch(self) -> None:
-        #IF: lee la instruccion de memoria e incrementa el PC.
+        """IF: lee la instruccion de memoria e incrementa el PC."""
         self._branch_taken = None
         self._old_pc = self.pc
         self._ir = self.instruction_memory.fetch(self.pc)
@@ -217,9 +184,11 @@ class MultiCycleEngine(ProcessorEngine):
         self._stage = Stage.DECODE
 
     def _do_decode(self) -> None:
-        #ID: decodifica, genera senales de control y lee registros fuente.
+        """ID: decodifica, genera senales de control y lee registros fuente."""
         self._instruction = self.decoder.decode(self._ir)
-        self._control_signal = self.control_unit.generate_control_signals(self._instruction)
+        self._control_signal = self.control_unit.generate_control_signals(
+            self._instruction
+        )
         self.control_signals = self._control_signal
 
         if self._instruction.rs1 is not None:
@@ -230,7 +199,7 @@ class MultiCycleEngine(ProcessorEngine):
         self._stage = Stage.EXECUTE
 
     def _do_execute(self) -> None:
-        #EX: opera la ALU; determina la siguiente etapa segun el tipo.
+        """EX: opera la ALU y decide la siguiente etapa por opcode."""
         opcode = self._instruction.opcode
         cs = self._control_signal
 
@@ -239,12 +208,20 @@ class MultiCycleEngine(ProcessorEngine):
             self._stage = Stage.WRITEBACK
 
         elif opcode == "addi":
-            self._alu_out = self.alu.execute(cs.alu_control, self._a, self._instruction.imm)
+            self._alu_out = self.alu.execute(
+                cs.alu_control,
+                self._a,
+                self._instruction.imm,
+            )
             self._stage = Stage.WRITEBACK
 
         elif opcode in {"lw", "sw"}:
-            # Calcula la direccion de memoria: base + offset
-            self._alu_out = self.alu.execute(cs.alu_control, self._a, self._instruction.imm)
+            # Direccion efectiva de memoria: base de rs1 + offset inmediato.
+            self._alu_out = self.alu.execute(
+                cs.alu_control,
+                self._a,
+                self._instruction.imm,
+            )
             self._stage = Stage.MEMORY
 
         elif opcode in {"beq", "bne"}:
@@ -254,16 +231,15 @@ class MultiCycleEngine(ProcessorEngine):
             self._alu_out = result
 
             if condition_met:
-                # El decoder resuelve labels a direcciones absolutas
+                # El decoder ya resolvio labels a direcciones absolutas.
                 self.pc = self._instruction.imm
-            # Si no se toma, pc ya fue incrementado a PC+4 en FETCH
+            # Si no se toma, el PC ya apunta a PC+4 desde FETCH.
 
             self.metrics.count_instruction()
-            self.metrics.add_time(MULTICYCLE_LATENCY_PS.get(opcode, 825))
             self._stage = Stage.FETCH
 
     def _do_memory(self) -> None:
-        #MEM: accede a memoria de datos (lw lee, sw escribe).
+        """MEM: accede a memoria de datos; lw lee y sw escribe."""
         opcode = self._instruction.opcode
 
         if opcode == "lw":
@@ -273,19 +249,17 @@ class MultiCycleEngine(ProcessorEngine):
         elif opcode == "sw":
             self.memory.store_word(self._alu_out, self._b)
             self.metrics.count_instruction()
-            self.metrics.add_time(MULTICYCLE_LATENCY_PS.get(opcode, 1100))
             self._stage = Stage.FETCH
 
     def _do_writeback(self) -> None:
-        #WB: escribe el resultado en el banco de registros.
+        """WB: escribe el resultado final en el banco de registros."""
         opcode = self._instruction.opcode
 
         if opcode == "lw":
             self.register_bank.write(self._instruction.rd, self._mdr)
         else:
-            # R-type y ADDI escriben el resultado de la ALU
+            # R-type y ADDI escriben el resultado previamente calculado por ALU.
             self.register_bank.write(self._instruction.rd, self._alu_out)
 
         self.metrics.count_instruction()
-        self.metrics.add_time(MULTICYCLE_LATENCY_PS.get(opcode, 1100))
         self._stage = Stage.FETCH

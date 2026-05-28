@@ -1,17 +1,15 @@
-"""Las cinco etapas del pipeline RISC-V.
+"""Etapas del pipeline RISC-V de cinco etapas.
 
-Cada funcion recibe el registro de entrada de su etapa y devuelve el
-registro de salida. Ninguna etapa muta los registros en medio de una etapa. 
-El motor las llama y decide que hacer con los valores devueltos
+Cada funcion recibe el registro de entrada de su etapa y devuelve el registro
+de salida. Ninguna etapa muta los registros internos del motor; esa separacion
+permite que el ciclo simulado avance todos los registros al mismo tiempo.
 """
 
-from src.pipeline.pipeline_registers import IF_ID, ID_EX, EX_MEM, MEM_WB
+from src.pipeline.pipeline_registers import EX_MEM, ID_EX, IF_ID, MEM_WB
 
 
-
-# IF — Instruction Fetch
 def stage_fetch(pc: int, instruction_memory) -> IF_ID:
-    """Lee la instruccion en 'pc' y la empaqueta en IF_ID."""
+    """IF: lee la instruccion en el PC actual y la empaqueta en IF/ID."""
     try:
         raw = instruction_memory.fetch(pc)
         return IF_ID(instruction=raw, pc=pc)
@@ -19,11 +17,10 @@ def stage_fetch(pc: int, instruction_memory) -> IF_ID:
         return IF_ID(instruction=None, pc=pc)
 
 
-# ID — Instruction Decode / Register Read
 def stage_decode(if_id: IF_ID, register_bank, decoder, control_unit) -> ID_EX:
-    """Decodifica IF_ID y lee los operandos del banco de registros."""
+    """ID: decodifica la instruccion y lee sus operandos fuente."""
     if if_id.instruction is None:
-        return ID_EX()   # burbuja: todos los campos en su valor por defecto
+        return ID_EX()
 
     instr = decoder.decode(if_id.instruction)
     ctrl = control_unit.generate_control_signals(instr)
@@ -44,13 +41,11 @@ def stage_decode(if_id: IF_ID, register_bank, decoder, control_unit) -> ID_EX:
     )
 
 
-# EX — Execute
 def stage_execute(id_ex: ID_EX, alu) -> tuple[EX_MEM, bool, int]:
-    """Opera la ALU y decide si un salto es tomado.
+    """EX: ejecuta ALU y decide si un branch debe redirigir el PC.
 
-    Retorna (EX_MEM, branch_taken, branch_target).
-    branch_taken=True implica que el motor debe limpiar IF_ID e ID_EX y
-    redirigir el PC a branch_target.
+    Retorna (EX/MEM, branch_taken, branch_target). Cuando branch_taken es True,
+    el motor limpia las instrucciones especulativas en IF/ID e ID/EX.
     """
     if id_ex.instruction is None or id_ex.control is None:
         return EX_MEM(), False, 0
@@ -85,16 +80,15 @@ def stage_execute(id_ex: ID_EX, alu) -> tuple[EX_MEM, bool, int]:
             alu_result=result,
             b=id_ex.b,
             rd=id_ex.rd,
+            pc=id_ex.pc,
         ),
         branch_taken,
         branch_target,
     )
 
 
-
-# MEM — Memory Access
 def stage_memory(ex_mem: EX_MEM, memory) -> MEM_WB:
-    """Accede a la memoria de datos (load o store)."""
+    """MEM: atiende loads/stores y conserva resultados para writeback."""
     if ex_mem.instruction is None or ex_mem.control is None:
         return MEM_WB()
 
@@ -112,12 +106,12 @@ def stage_memory(ex_mem: EX_MEM, memory) -> MEM_WB:
         alu_result=ex_mem.alu_result,
         mem_data=mem_data,
         rd=ex_mem.rd,
+        pc=ex_mem.pc,
     )
 
 
-# WB — Write Back
 def stage_writeback(mem_wb: MEM_WB, register_bank) -> None:
-    """Escribe el resultado en el banco de registros si la instruccion lo requiere."""
+    """WB: escribe en registros solo si la senal RegWrite esta activa."""
     if mem_wb.instruction is None or mem_wb.control is None:
         return
     if not mem_wb.control.reg_write or mem_wb.rd is None:
