@@ -168,7 +168,12 @@ class ProcessorSimulationMixin:
             self.running = False
             QApplication.processEvents()
         else:
-            self.timer.start(400)
+            delay = (
+                self.main_window.automatic_speed.value()
+                if hasattr(self.main_window, "automatic_speed")
+                else 400
+            )
+            self.timer.start(delay)
 
     # RESET
     def reset_execution(self):

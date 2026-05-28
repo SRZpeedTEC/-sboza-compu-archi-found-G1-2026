@@ -71,6 +71,25 @@ class MainWindow(QMainWindow):
         )
         top_layout.addWidget(self.mode)
 
+        self.speed_label = QLabel("ms per step")
+        self.speed_label.setObjectName("speedLabel")
+
+        self.automatic_speed = QSpinBox()
+        self.automatic_speed.setRange(100, 1000)
+        self.automatic_speed.setSingleStep(100)
+        self.automatic_speed.setValue(300)
+        self.automatic_speed.setSuffix(" ms")
+        self.automatic_speed.setToolTip(
+            "Delay per cycle in automatic mode"
+        )
+        self.automatic_speed.setFixedWidth(130)
+        self.automatic_speed.valueChanged.connect(
+            self.automatic_speed_changed
+        )
+
+        top_layout.addWidget(self.speed_label)
+        top_layout.addWidget(self.automatic_speed)
+
         top_card.setLayout(top_layout)
 
         # TABS PRINCIPALES
@@ -268,55 +287,60 @@ class MainWindow(QMainWindow):
 
         self.main_tabs.setMinimumHeight(target_height)
         self.main_tabs.setMaximumHeight(target_height)
+
+    def automatic_speed_changed(self, value: int) -> None:
+        """Actualiza timers activos sin reiniciar la ejecucion automatica."""
+        mode = self.mode.currentText()
+
+        if not mode.startswith("Autom"):
+            return
+
+        for proc in (self.proc_a, self.proc_b):
+            proc.timer.setInterval(value)
+
+    def update_execution_buttons_for_mode(self, mode: str) -> None:
+        """Muestra solo los controles utiles para el modo seleccionado."""
+        is_step = mode == "Step by Step"
+        is_auto = mode.startswith("Autom")
+        is_complete = mode == "Completo"
+
+        all_pages = (
+            self.proc_a,
+            self.proc_b,
+            self.comparison
+        )
+
+        for page in all_pages:
+            page.step_btn.setVisible(is_step)
+            page.step_btn.setEnabled(is_step)
+
+            page.run_btn.setVisible(is_auto or is_complete)
+            page.run_btn.setEnabled(is_auto or is_complete)
+            page.run_btn.setText(
+                "⏵ Execute Complete" if is_complete else "⏵ Run"
+            )
+
+            page.stop_btn.setVisible(is_auto)
+            page.stop_btn.setEnabled(is_auto)
+
+        self.speed_label.setVisible(is_auto)
+        self.automatic_speed.setVisible(is_auto)
     
     def execution_mode_changed(self):
 
         mode = self.mode.currentText()
+        automatic_delay = self.automatic_speed.value()
 
-        processors = [
-            self.proc_a,
-            self.proc_b
-        ]
-
-        for proc in processors:
-
+        for proc in (self.proc_a, self.proc_b):
             if mode == "Step by Step":
-
-                proc.step_btn.setEnabled(True)
-                proc.run_btn.setEnabled(False)
-                proc.stop_btn.setEnabled(False)
-
-            elif mode == "Automático":
-
-                proc.step_btn.setEnabled(False)
-                proc.run_btn.setEnabled(True)
-                proc.stop_btn.setEnabled(True)
-
-                proc.timer.setInterval(400)
-
+                proc.timer.stop()
+                proc.running = False
+            elif mode.startswith("Autom"):
+                proc.timer.setInterval(automatic_delay)
             elif mode == "Completo":
-
-                proc.step_btn.setEnabled(False)
-                proc.run_btn.setEnabled(True)
-                proc.stop_btn.setEnabled(False)
-
+                proc.timer.stop()
+                proc.running = False
                 proc.timer.setInterval(1)
 
-        # BOTONES DE COMPARACION
-        if mode == "Step by Step":
-
-            self.comparison.step_btn.setEnabled(True)
-            self.comparison.run_btn.setEnabled(False)
-            self.comparison.stop_btn.setEnabled(False)
-
-        elif mode == "Automático":
-
-            self.comparison.step_btn.setEnabled(False)
-            self.comparison.run_btn.setEnabled(True)
-            self.comparison.stop_btn.setEnabled(True)
-
-        elif mode == "Completo":
-
-            self.comparison.step_btn.setEnabled(False)
-            self.comparison.run_btn.setEnabled(True)
-            self.comparison.stop_btn.setEnabled(False)
+        self.update_execution_buttons_for_mode(mode)
+        QTimer.singleShot(0, self._resize_tabs_to_current_page)
