@@ -7,6 +7,8 @@ from src.UI.styles.theme import STYLE
 
 
 class MainWindow(QMainWindow):
+    """Ventana principal: coordina pestañas, modo de ejecución e historial."""
+
     def __init__(self):
         super().__init__()
 
@@ -134,7 +136,7 @@ class MainWindow(QMainWindow):
         history_title = QLabel("Historial de Ejecuciones")
         history_title.setObjectName("sectionTitle")
 
-        # Scroll area que contiene las tarjetas de cada ejecucion
+        # El historial vive en su propio scroll para no estirar la pagina activa.
         self.history_scroll = QScrollArea()
         self.history_scroll.setObjectName("historyScroll")
         self.history_scroll.setWidgetResizable(True)
@@ -154,7 +156,7 @@ class MainWindow(QMainWindow):
         self.history_empty_label.setObjectName("emptyHistoryLabel")
         self.history_empty_label.setAlignment(Qt.AlignCenter)
         self.history_inner.addWidget(self.history_empty_label)
-        self.history_inner.addStretch()   # empuja las tarjetas hacia arriba
+        self.history_inner.addStretch()   # Mantiene las tarjetas alineadas arriba.
 
         self.history_scroll.setWidget(self.history_container)
 
@@ -207,7 +209,7 @@ class MainWindow(QMainWindow):
         badge_text, badge_color = self._ARCH_BADGE.get(arch, ("?", "#aaaaaa"))
         self.history_empty_label.hide()
 
-        # ---- Tarjeta ----
+        # La tarjeta conserva los colores por arquitectura sin tocar el tema global.
         card = QFrame()
         card.setStyleSheet(f"""
             QFrame {{
@@ -222,7 +224,6 @@ class MainWindow(QMainWindow):
         card_layout.setContentsMargins(10, 8, 14, 8)
         card_layout.setSpacing(14)
 
-        # Badge de arquitectura
         badge = QLabel(badge_text)
         badge.setFixedSize(42, 42)
         badge.setAlignment(Qt.AlignCenter)
@@ -235,14 +236,10 @@ class MainWindow(QMainWindow):
             border: none;
         """)
 
-        # Info
         info_col = QVBoxLayout()
         info_col.setSpacing(3)
 
-        name_lbl = QLabel(
-            f"<b>{entry.get('processor', '?')}</b>"
-            f"  —  {arch}"
-        )
+        name_lbl = QLabel()
         name_lbl.setStyleSheet("font-size: 10pt; color: #22264a; border: none;")
         name_lbl.setText(
             f"<b>{entry.get('processor', '?')}</b>"
@@ -251,12 +248,7 @@ class MainWindow(QMainWindow):
         )
         name_lbl.setTextFormat(Qt.RichText)
 
-        metrics_lbl = QLabel(
-            f"Ciclos: <b>{entry.get('cycles', 0)}</b>"
-            f"   |   Instrucciones: <b>{entry.get('instructions', 0)}</b>"
-            f"   |   CPI: <b>{entry.get('cpi', '—')}</b>"
-            f"   |   Tiempo total: <b>{entry.get('total_time', '—')}</b>"
-        )
+        metrics_lbl = QLabel()
         metrics_lbl.setStyleSheet("font-size: 9pt; color: #556699; border: none;")
         metrics_lbl.setText(
             f"Ciclos: <b>{entry.get('cycles', '-')}</b>"
@@ -282,11 +274,11 @@ class MainWindow(QMainWindow):
         card_layout.addLayout(info_col)
         card_layout.addStretch()
 
-        # Insertar la tarjeta nueva al principio (indice 0)
+        # Insertar al principio mantiene visible la ejecucion mas reciente.
         self.history_inner.insertWidget(0, card)
         self.history_entries.insert(0, card)
 
-        # Limitar a 10 entradas: eliminar la mas antigua (justo antes del stretch)
+        # Limite visual: evita que el historial crezca sin control durante demos.
         while len(self.history_entries) > 10:
             oldest = self.history_entries.pop()
             self.history_inner.removeWidget(oldest)

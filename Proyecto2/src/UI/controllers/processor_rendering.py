@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QTableWidgetItem, QTextEdit
 
 class ProcessorRenderingMixin:
     def format_instruction(self, instruction):
+        """Normaliza instrucciones para tablas, etapas y mensajes de hazards."""
 
         if instruction is None:
             return "-"
@@ -28,11 +29,13 @@ class ProcessorRenderingMixin:
         self._show_hazard_empty_state()
 
     def _show_hazard_empty_state(self) -> None:
+        """Muestra un estado vacío estable mientras no existan eventos."""
         if hasattr(self, "hazard_box"):
             self.hazard_box.clear()
             self.hazard_box.addItem("No hazards detected yet.")
 
     def _render_hazard_history(self) -> None:
+        """Renderiza el historial acumulado sin borrar eventos ya registrados."""
         if not hasattr(self, "hazard_box"):
             return
 
@@ -46,6 +49,7 @@ class ProcessorRenderingMixin:
             self.hazard_box.addItem(self._format_hazard_event(event))
 
     def _record_hazards_from_snapshot(self, snapshot) -> None:
+        """Extrae eventos del snapshot y evita duplicados por ciclo/descripcion."""
         events = self._hazard_events_from_snapshot(snapshot)
 
         for event in events:
@@ -69,6 +73,7 @@ class ProcessorRenderingMixin:
             self._show_hazard_empty_state()
 
     def _hazard_events_from_snapshot(self, snapshot) -> list[dict]:
+        """Mapea banderas de pipeline/forwarding a eventos legibles por la UI."""
         architecture = self.selector.currentText()
         metrics = (
             snapshot.metrics.get_metrics()
@@ -159,6 +164,7 @@ class ProcessorRenderingMixin:
     
     # ACTUALIZAR DATAPATH
     def update_datapath(self, snapshot):
+        """Envía el snapshot al datapath que corresponde a la arquitectura activa."""
 
         architecture = self.selector.currentText()
 
@@ -184,6 +190,7 @@ class ProcessorRenderingMixin:
         self.datapath_widget.set_active_blocks([])
 
     def update_editor_execution_line(self, snapshot):
+        """Resalta la línea fuente asociada al PC visible del snapshot."""
         if not hasattr(self, "editor"):
             return
 
@@ -215,6 +222,7 @@ class ProcessorRenderingMixin:
         self.editor.centerCursor()
 
     def clear_editor_execution_line(self):
+        """Quita el resaltado del editor cuando no hay instrucción activa."""
         if hasattr(self, "editor"):
             self.editor.setExtraSelections([])
 
@@ -248,6 +256,7 @@ class ProcessorRenderingMixin:
         return None
 
     def _source_line_for_pc(self, pc):
+        """Convierte PC a línea fuente, respetando labels y líneas vacías."""
         if pc is None:
             return None
 
@@ -293,6 +302,7 @@ class ProcessorRenderingMixin:
             
     # ACTUALIZAR PIPELINE
     def update_pipeline_table(self):
+        """Refresca la tabla histórica IF/ID/EX/MEM/WB."""
 
         self.pipeline.setRowCount(len(self.pipeline_data))
 
@@ -336,6 +346,7 @@ class ProcessorRenderingMixin:
 
     # ACTUALIZAR ESTADO PIPELINE
     def update_pipeline_state(self, snapshot):
+        """Actualiza la vista compacta de etapa actual para cada arquitectura."""
 
         # MULTICICLO
         if hasattr(snapshot, "stage") and snapshot.stage is not None:

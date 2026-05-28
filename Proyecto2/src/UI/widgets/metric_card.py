@@ -3,6 +3,7 @@ from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout
 
 
 class MetricCard(QFrame):
+    """Tarjeta reutilizable para mostrar una métrica y su valor actual."""
 
     def __init__(self, title, value, color):
         super().__init__()
@@ -45,5 +46,6 @@ class MetricCard(QFrame):
         self.setLayout(layout)
 
     def set_value(self, value):
+        """Actualiza el valor sin modificar el estilo de la tarjeta."""
         self.value_label.setText(str(value))
     

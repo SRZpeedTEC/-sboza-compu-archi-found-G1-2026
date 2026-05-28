@@ -54,6 +54,11 @@ STAGE_MAP = {
 
 
 def map_multi_cycle_datapath_state(snapshot) -> dict:
+    """Convierte el snapshot multiciclo en estado visual por etapa.
+
+    Cada componente se activa según la etapa FSM actual y el opcode; si el
+    snapshot está vacío se devuelve un estado neutral para el reset de la vista.
+    """
     neutral = _is_neutral_snapshot(snapshot)
     active_stage = "-" if neutral else _active_stage(snapshot)
     instruction = _get(snapshot, "current_instruction")

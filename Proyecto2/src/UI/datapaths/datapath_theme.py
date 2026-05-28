@@ -5,6 +5,8 @@ from PySide6.QtGui import QColor
 
 @dataclass(frozen=True)
 class DatapathTheme:
+    """Paleta compartida por las vistas de datapath."""
+
     background: str = "transparent"
     module_fill: str = "#ffffff"
     inactive_fill: str = "#f8f9ff"
@@ -15,7 +17,7 @@ class DatapathTheme:
     muted_text: str = "#9aa3c7"
     title_text: str = "#2f3b5f"
 
-    # --- Pipeline (aditivo): campos nuevos con default, no rompen al Uniciclo ---
+    # Campos del pipeline con default para no afectar las vistas existentes.
     forward_path: str = "#f5a623"        # flechas de forwarding (ambar)
     stall_fill: str = "#ffd5d5"          # burbuja / stall (rojo suave)
     flush_fill: str = "#ffe3a8"          # etapas en flush (ambar suave)
@@ -46,14 +48,8 @@ SINGLE_CYCLE_CONTENT_WIDTH = 1290
 SINGLE_CYCLE_CONTENT_HEIGHT = 360
 
 
-# === Pipeline (Forwarding / Stalls) =========================================
-# Datapath a nivel de componente (como el Uniciclo) repartido en las 5 etapas,
-# con la Unidad de Control arriba, las 4 barreras de registro entre etapas y las
-# dos unidades de control de riesgos abajo. Componentes pegados (gaps cortos)
-# para que los cables de datos sean tramos cortos.
-#
-#   pc_src_mux pc imem |IF/ID| regfile immediate |ID/EX| alu_src_mux alu |EX/MEM|
-#                       data_memory |MEM/WB| result_src_mux
+# Layout del pipeline repartido en las cinco etapas, con las barreras de
+# registro visibles y tramos cortos para que los cables se lean con claridad.
 PIPELINE_CONTENT_WIDTH = 1360
 PIPELINE_CONTENT_HEIGHT = 545
 

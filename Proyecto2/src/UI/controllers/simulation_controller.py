@@ -18,7 +18,10 @@ CYCLE_LIMIT_MESSAGE = (
 
 
 class ProcessorSimulationMixin:
+    """Callbacks de ejecución compartidos por cada pestaña de procesador."""
+
     def architecture_changed(self):
+        """Reinicia la vista cuando el usuario cambia la arquitectura."""
 
         self.reset_execution()
         if hasattr(self, "update_datapath_visibility"):
@@ -28,6 +31,7 @@ class ProcessorSimulationMixin:
             self.comparison_page.update_comparison()
 
     def step_execution(self):
+        """Ejecuta un ciclo y refresca solo el estado visible de la UI."""
 
         if self.execution_finalized:
             return
@@ -84,6 +88,7 @@ class ProcessorSimulationMixin:
 
     # RUN
     def run_execution(self):
+        """Ejecuta en modo automático o completo según el selector global."""
 
         if self.execution_finalized:
             return
@@ -95,7 +100,8 @@ class ProcessorSimulationMixin:
         self._continuous_cycle_count = 0
         mode = self.main_window.mode.currentText()
 
-        # Ejecutar un ciclo cada 400 ms o correr completo con limite.
+        # En modo completo se procesa sin dormir; se cede control a Qt cada
+        # cierto bloque para que la ventana no parezca congelada.
         if mode == "Completo":
 
             limit_reached = False
@@ -164,6 +170,7 @@ class ProcessorSimulationMixin:
 
     # RESET
     def reset_execution(self):
+        """Restaura métricas, tablas, resaltado y motor de la arquitectura actual."""
 
         self.timer.stop()
 
@@ -234,6 +241,7 @@ class ProcessorSimulationMixin:
 
     # STOP
     def stop_execution(self):
+        """Detiene únicamente la ejecución automática en curso."""
 
         self.running = False
         self._continuous_cycle_count = 0
@@ -241,6 +249,7 @@ class ProcessorSimulationMixin:
 
     # SNAPSHOT
     def save_snapshot(self):
+        """Guarda una captura ligera de la vista para futuras extensiones UI."""
 
         snapshot = {
 
@@ -282,6 +291,7 @@ class ProcessorSimulationMixin:
 
     # CARGAR SNAPSHOT
     def load_snapshot(self, snapshot):
+        """Restaura una captura visual creada por save_snapshot."""
 
         self.current_cycle = snapshot["cycle"]
 
@@ -297,6 +307,7 @@ class ProcessorSimulationMixin:
 
     # CREAR ENGINE
     def create_engine(self):
+        """Instancia el motor que corresponde al selector de arquitectura."""
 
         architecture = self.selector.currentText()
 
@@ -321,6 +332,7 @@ class ProcessorSimulationMixin:
     
     # CARGAR PROGRAMA EN ENGINE
     def load_program_into_engine(self):
+        """Carga el contenido del editor y reinicia banderas de una nueva corrida."""
 
         source_code = self.editor.toPlainText()
 
@@ -337,6 +349,7 @@ class ProcessorSimulationMixin:
 
     # VALIDACION Y ERRORES
     def _ensure_program_ready(self) -> bool:
+        """Valida código y recrea el motor solo cuando el programa cambió."""
         source_code = self.editor.toPlainText()
 
         try:
@@ -431,21 +444,9 @@ class ProcessorSimulationMixin:
     # CONSTRUIR ENTRADA DE HISTORIAL
     def _build_history_entry(self, snapshot) -> dict:
         """Devuelve un dict con las metricas del snapshot para el historial."""
-        from src.core.latency import (
-            CLOCK_PERIOD_SINGLE_CYCLE,
-            CLOCK_PERIOD_MULTICYCLE,
-            CLOCK_PERIOD_PIPELINE,
-            fmt_time,
-        )
+        from src.core.latency import fmt_time
 
         architecture = self.selector.currentText()
-
-        if architecture == "Procesador Uniciclo":
-            clock_ps = CLOCK_PERIOD_SINGLE_CYCLE
-        elif architecture == "Procesador Multiciclo":
-            clock_ps = CLOCK_PERIOD_MULTICYCLE
-        else:
-            clock_ps = CLOCK_PERIOD_PIPELINE
 
         m = snapshot.metrics.get_metrics()
         cycles       = m.get("cycles", 0)
