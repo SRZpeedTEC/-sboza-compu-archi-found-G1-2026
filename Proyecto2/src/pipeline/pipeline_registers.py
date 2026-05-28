@@ -17,7 +17,7 @@ class IF_ID:
     Contiene el string crudo de la instruccion y el PC con el que fue
     fetcheada. instruction=None indica stall (NOP).
     """
-    instruction: str | None = None   # raw string; None = stall
+    instruction: str | None = None   # texto original; None = burbuja/stall
     pc: int = 0                      # PC de la instruccion
 
     def to_dict(self) -> dict:
